@@ -1,0 +1,21 @@
+syntax="proto3";
+package gen;
+
+service Parking {
+  rpc GetParkingPlace (ParkingPlaceRequest) returns (ParkingPlaceResponse);
+}
+
+message ParkingPlaceRequest {
+  int64 id = 1;
+}
+
+message ParkingPlaceResponse {
+  int64 id = 1;
+  string name = 2;
+  string city = 3;
+  string address = 4;
+  string parking_type = 5;
+  int64 hourly_rate = 6;
+  int64 capacity = 7;
+  string owner_id = 8;
+}

@@ -1,0 +1,15 @@
+FROM docker:latest
+
+WORKDIR /setup
+
+RUN apk add --no-cache \
+    bash \
+    curl \
+    postgresql-client
+
+COPY scripts/ /setup/scripts/
+
+RUN chmod +x /setup/scripts/*.sh
+
+ENTRYPOINT ["/setup/scripts/setup.sh"]
+
