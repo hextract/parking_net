@@ -20,10 +20,12 @@ import urllib.parse
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
 
+NGINX_PORT = 80
+BASE_URL = f'http://localhost:{NGINX_PORT}'
 BASE_URLS = {
-    'auth': 'http://localhost:8800',
-    'parking': 'http://localhost:8888',
-    'booking': 'http://localhost:8880'
+    'auth': BASE_URL,
+    'parking': BASE_URL,
+    'booking': BASE_URL
 }
 
 class Response:
@@ -140,7 +142,7 @@ class TestRunner:
             "role": "owner",
             "telegram_id": 123123123
         }
-        resp = self.auth_client.post("/register", data)
+        resp = self.auth_client.post("/auth/register", data)
         if not self.assert_status(resp, 200, "Register Owner"):
             return False
         
@@ -163,7 +165,7 @@ class TestRunner:
             "role": "driver",
             "telegram_id": 615711092
         }
-        resp = self.auth_client.post("/register", data)
+        resp = self.auth_client.post("/auth/register", data)
         if not self.assert_status(resp, 200, "Register Driver"):
             return False
         
@@ -183,7 +185,7 @@ class TestRunner:
             "login": f"owner_{self.timestamp}",
             "password": "password123"
         }
-        resp = self.auth_client.post("/login", data)
+        resp = self.auth_client.post("/auth/login", data)
         if not self.assert_status(resp, 200, "Login Owner"):
             return False
         
@@ -203,7 +205,7 @@ class TestRunner:
             "login": f"driver_{self.timestamp}",
             "password": "password123"
         }
-        resp = self.auth_client.post("/login", data)
+        resp = self.auth_client.post("/auth/login", data)
         if not self.assert_status(resp, 200, "Login Driver"):
             return False
         
@@ -839,17 +841,17 @@ class TestRunner:
         services_ok = True
         
         if not self.check_service_available(self.auth_client, "auth"):
-            self.log("ERROR: Auth service is not available at " + BASE_URLS['auth'], "ERROR")
+            self.log("ERROR: Auth service is not available at " + BASE_URL, "ERROR")
             self.log("  Please run: docker-compose up -d", "ERROR")
             services_ok = False
         
         if not self.check_service_available(self.parking_client, "parking"):
-            self.log("ERROR: Parking service is not available at " + BASE_URLS['parking'], "ERROR")
+            self.log("ERROR: Parking service is not available at " + BASE_URL, "ERROR")
             self.log("  Please run: docker-compose up -d", "ERROR")
             services_ok = False
         
         if not self.check_service_available(self.booking_client, "booking"):
-            self.log("ERROR: Booking service is not available at " + BASE_URLS['booking'], "ERROR")
+            self.log("ERROR: Booking service is not available at " + BASE_URL, "ERROR")
             self.log("  Please run: docker-compose up -d", "ERROR")
             services_ok = False
         
@@ -857,7 +859,7 @@ class TestRunner:
             self.log("All services are available", "INFO")
         else:
             self.log("CRITICAL: Required services are not available. Tests will fail.", "ERROR")
-            self.failed += 1  # Count this as a failure
+            self.failed += 1
         
         return services_ok
     

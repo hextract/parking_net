@@ -189,6 +189,7 @@ paths:
       summary: "Prometheus metrics"
       produces:
         - "application/json"
+      security: []
       responses:
         200:
           description: ok

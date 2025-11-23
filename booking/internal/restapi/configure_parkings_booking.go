@@ -10,7 +10,6 @@ import (
 
 	swaggererrors "github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/middleware"
 
 	"github.com/h4x4d/parking_net/booking/internal/models"
 	"github.com/h4x4d/parking_net/booking/internal/restapi/handlers"
@@ -18,6 +17,7 @@ import (
 	"github.com/h4x4d/parking_net/booking/internal/restapi/operations/driver"
 	"github.com/h4x4d/parking_net/booking/internal/restapi/operations/instruments"
 	"github.com/h4x4d/parking_net/pkg/client"
+	"github.com/h4x4d/parking_net/pkg/middlewares"
 )
 
 //go:generate swagger generate server --target ../../internal --name ParkingsBooking --spec ../../api/swagger/booking.yaml --principal models.User --exclude-main
@@ -27,6 +27,7 @@ func configureFlags(api *operations.ParkingsBookingAPI) {
 
 var keycloakClient *client.Client
 var bookingHandler *handlers.Handler
+var prometheusMetrics *middlewares.PrometheusMetrics
 
 func configureAPI(api *operations.ParkingsBookingAPI) http.Handler {
 	var err error
@@ -47,6 +48,8 @@ func configureAPI(api *operations.ParkingsBookingAPI) http.Handler {
 	if err != nil {
 		panic(fmt.Sprintf("failed to initialize booking handler: %v", err))
 	}
+
+	prometheusMetrics = middlewares.NewPrometheusMetrics()
 
 	api.ServeError = swaggererrors.ServeError
 
@@ -83,11 +86,7 @@ func configureAPI(api *operations.ParkingsBookingAPI) http.Handler {
 		}, nil
 	}
 
-	if api.InstrumentsGetMetricsHandler == nil {
-		api.InstrumentsGetMetricsHandler = instruments.GetMetricsHandlerFunc(func(params instruments.GetMetricsParams) middleware.Responder {
-			return middleware.NotImplemented("operation instruments.GetMetrics has not yet been implemented")
-		})
-	}
+	api.InstrumentsGetMetricsHandler = instruments.GetMetricsHandlerFunc(handlers.MetricsHandler)
 	api.DriverCreateBookingHandler = driver.CreateBookingHandlerFunc(bookingHandler.CreateBooking)
 	api.DriverGetBookingHandler = driver.GetBookingHandlerFunc(bookingHandler.GetBooking)
 	api.DriverGetBookingByIDHandler = driver.GetBookingByIDHandlerFunc(bookingHandler.GetBookingByID)
@@ -112,5 +111,5 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 }
 
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
-	return handler
+	return prometheusMetrics.ApplyMetrics(handler)
 }

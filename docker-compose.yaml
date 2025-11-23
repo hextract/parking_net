@@ -10,8 +10,6 @@ services:
       - .env
     expose:
       - ${POSTGRES_PORT}
-    ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     command: -p ${POSTGRES_PORT}
     healthcheck:
       test: [ "CMD", "pg_isready" ]
@@ -25,35 +23,51 @@ services:
     build:
       context: ./
       dockerfile: ./parking/Dockerfile
+      args:
+        PARKING_REST_PORT: ${PARKING_REST_PORT}
+        PARKING_GRPC_PORT: ${PARKING_GRPC_PORT}
+        PARKING_HOST: ${PARKING_HOST:-0.0.0.0}
     depends_on:
       db:
         condition: service_healthy
       jaeger:
         condition: service_healthy
-    ports:
-      - "${PARKING_REST_PORT}:${PARKING_REST_PORT}"
-      - "${PARKING_GRPC_PORT}:${PARKING_GRPC_PORT}"
+    expose:
+      - ${PARKING_REST_PORT}
+      - ${PARKING_GRPC_PORT}
   booking:
     container_name: booking-svc
+    env_file:
+      - .env
+    environment:
+      - PORT=${BOOKING_REST_PORT}
+      - HOST=${BOOKING_HOST:-0.0.0.0}
     build:
       context: ./
       dockerfile: ./booking/Dockerfile
-    env_file:
-      - .env
+      args:
+        BOOKING_REST_PORT: ${BOOKING_REST_PORT}
+        BOOKING_HOST: ${BOOKING_HOST:-0.0.0.0}
     depends_on:
       db:
         condition: service_healthy
       jaeger:
         condition: service_started
-    ports:
-      - "${BOOKING_REST_PORT}:${BOOKING_REST_PORT}"
+    expose:
+      - ${BOOKING_REST_PORT}
   auth:
     container_name: auth-svc
+    env_file:
+      - .env
+    environment:
+      - PORT=${AUTH_REST_PORT}
+      - HOST=${AUTH_HOST:-0.0.0.0}
     build:
       context: ./
       dockerfile: ./auth/Dockerfile
-    env_file:
-      - .env
+      args:
+        AUTH_REST_PORT: ${AUTH_REST_PORT}
+        AUTH_HOST: ${AUTH_HOST:-0.0.0.0}
     depends_on:
       db:
         condition: service_healthy
@@ -61,8 +75,8 @@ services:
         condition: service_healthy
       jaeger:
         condition: service_healthy
-    ports:
-      - "${AUTH_REST_PORT}:${AUTH_REST_PORT}"
+    expose:
+      - ${AUTH_REST_PORT}
   notification:
     container_name: notification-svc
     build:
@@ -95,8 +109,8 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     container_name: zookeeper
-    ports:
-      - "${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT}"
+    expose:
+      - ${ZOOKEEPER_PORT}
     environment:
       ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
       ZOOKEEPER_TICK_TIME: 2000
@@ -104,8 +118,8 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.3.0
     container_name: kafka
-    ports:
-      - "${KAFKA_PORT}:${KAFKA_PORT}"
+    expose:
+      - ${KAFKA_PORT}
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
@@ -139,7 +153,7 @@ services:
         source: ./keycloak/config/realm-export.json
         target: /opt/keycloak/data/import/realm-export.json
     ports:
-      - ${KEYCLOAK_PORT}:${KEYCLOAK_INNER_PORT}
+      - "${KEYCLOAK_PORT}:${KEYCLOAK_INNER_PORT}"
     depends_on:
       db:
         condition: service_healthy
@@ -161,10 +175,10 @@ services:
     environment:
       - COLLECTOR_ZIPKIN_HTTP_PORT=9411
     ports:
-      - "${JAEGER_AGENT_PORT}:${JAEGER_AGENT_PORT}/udp"  # Для связи с агентом
-      - "16686:16686"    # Интерфейс Jaeger UI
-      - "${JAEGER_SEND_PORT}:${JAEGER_SEND_PORT}"    # HTTP API для отправки данных
-      - "14250:14250"    # gRPC для отправки данных
+      - "${JAEGER_AGENT_PORT}:${JAEGER_AGENT_PORT}/udp"
+      - "16686:16686"
+      - "${JAEGER_SEND_PORT}:${JAEGER_SEND_PORT}"
+      - "14250:14250"
     healthcheck:
       test: [ "CMD", "nc", "-z", "jaeger:16686" ]
       start_period: 5s
@@ -181,6 +195,45 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "${PROMETHEUS_PORT}:${PROMETHEUS_PORT}"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    env_file:
+      - .env
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "${GRAFANA_PORT}:${GRAFANA_PORT}"
+    depends_on:
+      - prometheus
+
+  nginx:
+    container_name: nginx-gateway
+    build:
+      context: ./
+      dockerfile: ./nginx/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "${NGINX_PORT}:${NGINX_PORT}"
+    depends_on:
+      - auth
+      - parking
+      - booking
+      - keycloak
+    restart: unless-stopped
 
   setup:
     build:

@@ -10,14 +10,15 @@ import (
 
 	swaggererrors "github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/middleware"
 
 	"github.com/h4x4d/parking_net/parking/internal/di"
 	"github.com/h4x4d/parking_net/parking/internal/models"
+	"github.com/h4x4d/parking_net/parking/internal/restapi/handlers"
 	"github.com/h4x4d/parking_net/parking/internal/restapi/operations"
 	"github.com/h4x4d/parking_net/parking/internal/restapi/operations/instruments"
 	"github.com/h4x4d/parking_net/parking/internal/restapi/operations/parking"
 	"github.com/h4x4d/parking_net/pkg/client"
+	"github.com/h4x4d/parking_net/pkg/middlewares"
 )
 
 //go:generate swagger generate server --target ../../internal --name ParkingsParking --spec ../../api/swagger/parking.yaml --principal models.User --exclude-main
@@ -27,6 +28,7 @@ func configureFlags(api *operations.ParkingsParkingAPI) {
 
 var container *di.Container
 var keycloakClient *client.Client
+var prometheusMetrics *middlewares.PrometheusMetrics
 
 func configureAPI(api *operations.ParkingsParkingAPI) http.Handler {
 	var err error
@@ -42,6 +44,8 @@ func configureAPI(api *operations.ParkingsParkingAPI) http.Handler {
 	} else {
 		slog.Info("Keycloak client initialized successfully")
 	}
+
+	prometheusMetrics = middlewares.NewPrometheusMetrics()
 
 	api.ServeError = swaggererrors.ServeError
 
@@ -77,11 +81,7 @@ func configureAPI(api *operations.ParkingsParkingAPI) http.Handler {
 		}, nil
 	}
 
-	if api.InstrumentsGetMetricsHandler == nil {
-		api.InstrumentsGetMetricsHandler = instruments.GetMetricsHandlerFunc(func(params instruments.GetMetricsParams) middleware.Responder {
-			return middleware.NotImplemented("operation instruments.GetMetrics has not yet been implemented")
-		})
-	}
+	api.InstrumentsGetMetricsHandler = instruments.GetMetricsHandlerFunc(handlers.MetricsHandler)
 
 	api.ParkingCreateParkingHandler = parking.CreateParkingHandlerFunc(container.ParkingHandler.CreateParking)
 	api.ParkingGetParkingByIDHandler = parking.GetParkingByIDHandlerFunc(container.ParkingHandler.GetParkingByID)
@@ -106,5 +106,5 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 }
 
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
-	return handler
+	return prometheusMetrics.ApplyMetrics(handler)
 }

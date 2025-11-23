@@ -28,7 +28,7 @@ func init() {
     "version": "0.1.0"
   },
   "paths": {
-    "/change-password": {
+    "/auth/change-password": {
       "post": {
         "consumes": [
           "application/json"
@@ -90,7 +90,7 @@ func init() {
         }
       }
     },
-    "/login": {
+    "/auth/login": {
       "post": {
         "consumes": [
           "application/json"
@@ -142,7 +142,7 @@ func init() {
         }
       }
     },
-    "/metrics": {
+    "/auth/metrics": {
       "get": {
         "produces": [
           "application/json"
@@ -155,7 +155,7 @@ func init() {
         }
       }
     },
-    "/register": {
+    "/auth/register": {
       "post": {
         "consumes": [
           "application/json"
@@ -252,7 +252,7 @@ func init() {
     "version": "0.1.0"
   },
   "paths": {
-    "/change-password": {
+    "/auth/change-password": {
       "post": {
         "consumes": [
           "application/json"
@@ -314,7 +314,7 @@ func init() {
         }
       }
     },
-    "/login": {
+    "/auth/login": {
       "post": {
         "consumes": [
           "application/json"
@@ -366,7 +366,7 @@ func init() {
         }
       }
     },
-    "/metrics": {
+    "/auth/metrics": {
       "get": {
         "produces": [
           "application/json"
@@ -379,7 +379,7 @@ func init() {
         }
       }
     },
-    "/register": {
+    "/auth/register": {
       "post": {
         "consumes": [
           "application/json"

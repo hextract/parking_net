@@ -8,7 +8,7 @@ schemes:
   #  - "https"
   - "http"
 paths:
-  /login:
+  /auth/login:
     post:
       summary: "Sign in user by login and password"
       consumes:
@@ -42,7 +42,7 @@ paths:
             $ref: "#/definitions/Error"
           description: "Incorrect login data"
 
-  /register:
+  /auth/register:
     post:
       summary: "Register user by username and password"
       consumes:
@@ -88,7 +88,7 @@ paths:
             $ref: "#/definitions/Error"
           description: "Incorrect data"
 
-  /change-password:
+  /auth/change-password:
     post:
       summary: "Change password"
       consumes:
@@ -128,7 +128,7 @@ paths:
           schema:
             $ref: "#/definitions/Error"
           description: "Incorrect old password"
-  /metrics:
+  /auth/metrics:
     get:
       summary: "Prometheus metrics"
       produces:

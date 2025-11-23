@@ -1,5 +1,8 @@
 FROM golang:1.23-alpine
 
+ARG BOOKING_REST_PORT=8880
+ARG BOOKING_HOST=0.0.0.0
+
 WORKDIR /pkg
 COPY pkg/go.mod .
 COPY pkg/go.sum .
@@ -16,7 +19,7 @@ COPY pkg/ ../pkg
 
 RUN go build -o booking cmd/parking-booking-server/main.go
 
-EXPOSE $BOOKING_REST_PORT
+EXPOSE ${BOOKING_REST_PORT}
 
-ENTRYPOINT ["./booking", "--port=8880", "--host=0.0.0.0"]
+ENTRYPOINT ["./booking"]
 

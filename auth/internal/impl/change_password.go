@@ -3,12 +3,13 @@ package impl
 import (
 	"context"
 	"fmt"
+
 	"github.com/Nerzal/gocloak/v13"
 	"github.com/h4x4d/parking_net/auth/internal/restapi/operations"
 	"github.com/h4x4d/parking_net/pkg/client"
 )
 
-func ChangePasswordUser(ctx context.Context, clt *client.Client, fields operations.PostChangePasswordBody) (*string, error) {
+func ChangePasswordUser(ctx context.Context, clt *client.Client, fields operations.PostAuthChangePasswordBody) (*string, error) {
 	if fields.Login == nil || fields.OldPassword == nil || fields.NewPassword == nil {
 		return nil, fmt.Errorf("login, old password, and new password are required")
 	}

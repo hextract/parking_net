@@ -42,17 +42,17 @@ func NewParkingsAuthAPI(spec *loads.Document) *ParkingsAuthAPI {
 
 		JSONProducer: runtime.JSONProducer(),
 
-		GetMetricsHandler: GetMetricsHandlerFunc(func(params GetMetricsParams) middleware.Responder {
-			return middleware.NotImplemented("operation GetMetrics has not yet been implemented")
+		GetAuthMetricsHandler: GetAuthMetricsHandlerFunc(func(params GetAuthMetricsParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetAuthMetrics has not yet been implemented")
 		}),
-		PostChangePasswordHandler: PostChangePasswordHandlerFunc(func(params PostChangePasswordParams) middleware.Responder {
-			return middleware.NotImplemented("operation PostChangePassword has not yet been implemented")
+		PostAuthChangePasswordHandler: PostAuthChangePasswordHandlerFunc(func(params PostAuthChangePasswordParams) middleware.Responder {
+			return middleware.NotImplemented("operation PostAuthChangePassword has not yet been implemented")
 		}),
-		PostLoginHandler: PostLoginHandlerFunc(func(params PostLoginParams) middleware.Responder {
-			return middleware.NotImplemented("operation PostLogin has not yet been implemented")
+		PostAuthLoginHandler: PostAuthLoginHandlerFunc(func(params PostAuthLoginParams) middleware.Responder {
+			return middleware.NotImplemented("operation PostAuthLogin has not yet been implemented")
 		}),
-		PostRegisterHandler: PostRegisterHandlerFunc(func(params PostRegisterParams) middleware.Responder {
-			return middleware.NotImplemented("operation PostRegister has not yet been implemented")
+		PostAuthRegisterHandler: PostAuthRegisterHandlerFunc(func(params PostAuthRegisterParams) middleware.Responder {
+			return middleware.NotImplemented("operation PostAuthRegister has not yet been implemented")
 		}),
 	}
 }
@@ -90,14 +90,14 @@ type ParkingsAuthAPI struct {
 	//   - application/json
 	JSONProducer runtime.Producer
 
-	// GetMetricsHandler sets the operation handler for the get metrics operation
-	GetMetricsHandler GetMetricsHandler
-	// PostChangePasswordHandler sets the operation handler for the post change password operation
-	PostChangePasswordHandler PostChangePasswordHandler
-	// PostLoginHandler sets the operation handler for the post login operation
-	PostLoginHandler PostLoginHandler
-	// PostRegisterHandler sets the operation handler for the post register operation
-	PostRegisterHandler PostRegisterHandler
+	// GetAuthMetricsHandler sets the operation handler for the get auth metrics operation
+	GetAuthMetricsHandler GetAuthMetricsHandler
+	// PostAuthChangePasswordHandler sets the operation handler for the post auth change password operation
+	PostAuthChangePasswordHandler PostAuthChangePasswordHandler
+	// PostAuthLoginHandler sets the operation handler for the post auth login operation
+	PostAuthLoginHandler PostAuthLoginHandler
+	// PostAuthRegisterHandler sets the operation handler for the post auth register operation
+	PostAuthRegisterHandler PostAuthRegisterHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -175,17 +175,17 @@ func (o *ParkingsAuthAPI) Validate() error {
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
-	if o.GetMetricsHandler == nil {
-		unregistered = append(unregistered, "GetMetricsHandler")
+	if o.GetAuthMetricsHandler == nil {
+		unregistered = append(unregistered, "GetAuthMetricsHandler")
 	}
-	if o.PostChangePasswordHandler == nil {
-		unregistered = append(unregistered, "PostChangePasswordHandler")
+	if o.PostAuthChangePasswordHandler == nil {
+		unregistered = append(unregistered, "PostAuthChangePasswordHandler")
 	}
-	if o.PostLoginHandler == nil {
-		unregistered = append(unregistered, "PostLoginHandler")
+	if o.PostAuthLoginHandler == nil {
+		unregistered = append(unregistered, "PostAuthLoginHandler")
 	}
-	if o.PostRegisterHandler == nil {
-		unregistered = append(unregistered, "PostRegisterHandler")
+	if o.PostAuthRegisterHandler == nil {
+		unregistered = append(unregistered, "PostAuthRegisterHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -278,19 +278,19 @@ func (o *ParkingsAuthAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/metrics"] = NewGetMetrics(o.context, o.GetMetricsHandler)
+	o.handlers["GET"]["/auth/metrics"] = NewGetAuthMetrics(o.context, o.GetAuthMetricsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/change-password"] = NewPostChangePassword(o.context, o.PostChangePasswordHandler)
+	o.handlers["POST"]["/auth/change-password"] = NewPostAuthChangePassword(o.context, o.PostAuthChangePasswordHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/login"] = NewPostLogin(o.context, o.PostLoginHandler)
+	o.handlers["POST"]["/auth/login"] = NewPostAuthLogin(o.context, o.PostAuthLoginHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/register"] = NewPostRegister(o.context, o.PostRegisterHandler)
+	o.handlers["POST"]["/auth/register"] = NewPostAuthRegister(o.context, o.PostAuthRegisterHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

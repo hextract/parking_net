@@ -30,6 +30,7 @@ func init() {
   "paths": {
     "/metrics": {
       "get": {
+        "security": [],
         "produces": [
           "application/json"
         ],
@@ -407,6 +408,7 @@ func init() {
   "paths": {
     "/metrics": {
       "get": {
+        "security": [],
         "produces": [
           "application/json"
         ],

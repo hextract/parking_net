@@ -13,7 +13,7 @@ import (
 	"github.com/h4x4d/parking_net/auth/internal/utils"
 )
 
-func (h *Handler) RegisterHandler(api operations.PostRegisterParams) middleware.Responder {
+func (h *Handler) RegisterHandler(api operations.PostAuthRegisterParams) middleware.Responder {
 	var responder middleware.Responder
 	defer utils.CatchPanic(&responder)
 
@@ -24,15 +24,15 @@ func (h *Handler) RegisterHandler(api operations.PostRegisterParams) middleware.
 
 	if api.Body.Login == nil || api.Body.Email == nil || api.Body.Password == nil ||
 		api.Body.Role == nil || api.Body.TelegramID == nil {
-		errCode := int64(operations.PostRegisterConflictCode)
+		errCode := int64(operations.PostAuthRegisterConflictCode)
 		slog.Error(
 			"failed register new user",
 			slog.String("method", "POST"),
 			slog.String("trace_id", traceID),
-			slog.Int("status_code", operations.PostRegisterConflictCode),
+			slog.Int("status_code", operations.PostAuthRegisterConflictCode),
 			slog.String("error", "missing required fields"),
 		)
-		responder = new(operations.PostRegisterConflict).WithPayload(&models.Error{
+		responder = new(operations.PostAuthRegisterConflict).WithPayload(&models.Error{
 			ErrorMessage:    "Invalid request: missing required fields",
 			ErrorStatusCode: &errCode,
 		})
@@ -55,12 +55,12 @@ func (h *Handler) RegisterHandler(api operations.PostRegisterParams) middleware.
 				slog.String("email", *api.Body.Email),
 				slog.Int("telegram-id", int(*api.Body.TelegramID)),
 			),
-			slog.Int("status_code", operations.PostRegisterConflictCode),
+			slog.Int("status_code", operations.PostAuthRegisterConflictCode),
 			slog.String("error", err.Error()),
 		)
 
-		conflict := int64(operations.PostRegisterConflictCode)
-		responder = new(operations.PostRegisterConflict).WithPayload(&models.Error{
+		conflict := int64(operations.PostAuthRegisterConflictCode)
+		responder = new(operations.PostAuthRegisterConflict).WithPayload(&models.Error{
 			ErrorMessage:    errorMsg,
 			ErrorStatusCode: &conflict,
 		})
@@ -76,10 +76,10 @@ func (h *Handler) RegisterHandler(api operations.PostRegisterParams) middleware.
 			slog.String("email", *api.Body.Email),
 			slog.Int("telegram-id", int(*api.Body.TelegramID)),
 		),
-		slog.Int("status_code", operations.PostRegisterOKCode),
+		slog.Int("status_code", operations.PostAuthRegisterOKCode),
 	)
 
-	responder = new(operations.PostRegisterOK).WithPayload(&operations.PostRegisterOKBody{
+	responder = new(operations.PostAuthRegisterOK).WithPayload(&operations.PostAuthRegisterOKBody{
 		Token: *token,
 	})
 	return responder

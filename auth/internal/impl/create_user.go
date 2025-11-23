@@ -12,7 +12,7 @@ import (
 	"github.com/h4x4d/parking_net/pkg/client"
 )
 
-func CreateUser(ctx context.Context, clt *client.Client, fields operations.PostRegisterBody) (*string, error) {
+func CreateUser(ctx context.Context, clt *client.Client, fields operations.PostAuthRegisterBody) (*string, error) {
 	if fields.Login == nil || fields.Email == nil || fields.Password == nil ||
 		fields.Role == nil || fields.TelegramID == nil {
 		return nil, fmt.Errorf("all fields are required")

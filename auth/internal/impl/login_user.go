@@ -3,11 +3,12 @@ package impl
 import (
 	"context"
 	"fmt"
+
 	"github.com/h4x4d/parking_net/auth/internal/restapi/operations"
 	"github.com/h4x4d/parking_net/pkg/client"
 )
 
-func LoginUser(ctx context.Context, clt *client.Client, fields operations.PostLoginBody) (*string, error) {
+func LoginUser(ctx context.Context, clt *client.Client, fields operations.PostAuthLoginBody) (*string, error) {
 	if fields.Login == nil || fields.Password == nil {
 		return nil, fmt.Errorf("login and password are required")
 	}

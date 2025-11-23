@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"net/http"
 )
 
@@ -18,14 +19,17 @@ func (rw *responseWriterWrapper) WriteHeader(code int) {
 // PrometheusErrorMiddleware - отслеживает ошибки
 func (metrics *PrometheusMetrics) PrometheusErrorMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		method := r.Method
 		endpoint := r.URL.Path
 
 		wrapper := &responseWriterWrapper{ResponseWriter: w, statusCode: http.StatusOK}
 		next.ServeHTTP(wrapper, r)
 
 		if wrapper.statusCode >= 400 {
-			metrics.ErrorResponses.WithLabelValues(method, endpoint, http.StatusText(wrapper.statusCode)).Inc()
+			statusText := http.StatusText(wrapper.statusCode)
+			if statusText == "" {
+				statusText = fmt.Sprintf("%d", wrapper.statusCode)
+			}
+			metrics.ErrorResponses.WithLabelValues(endpoint, fmt.Sprintf("%d", wrapper.statusCode), statusText).Inc()
 		}
 	})
 }

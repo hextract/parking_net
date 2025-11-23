@@ -1,5 +1,8 @@
 FROM golang:1.23-alpine
 
+ARG AUTH_REST_PORT=8800
+ARG AUTH_HOST=0.0.0.0
+
 WORKDIR /pkg
 COPY pkg/go.mod .
 COPY pkg/go.sum .
@@ -16,7 +19,7 @@ COPY pkg/ ../pkg
 
 RUN go build -o auth cmd/main.go
 
-EXPOSE $AUTH_REST_PORT
+EXPOSE ${AUTH_REST_PORT}
 
-ENTRYPOINT ["./auth", "--port=8800", "--host=0.0.0.0"]
+ENTRYPOINT ["./auth"]
 

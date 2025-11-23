@@ -7,10 +7,10 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/middleware"
 
 	"github.com/h4x4d/parking_net/auth/internal/restapi/handlers"
 	"github.com/h4x4d/parking_net/auth/internal/restapi/operations"
+	"github.com/h4x4d/parking_net/pkg/middlewares"
 )
 
 //go:generate swagger generate server --target ../../internal --name ParkingsAuth --spec ../../api/swagger/auth.yaml --principal interface{} --exclude-main
@@ -19,6 +19,7 @@ func configureFlags(api *operations.ParkingsAuthAPI) {
 }
 
 var authHandler *handlers.Handler
+var prometheusMetrics *middlewares.PrometheusMetrics
 
 func configureAPI(api *operations.ParkingsAuthAPI) http.Handler {
 	var err error
@@ -26,6 +27,8 @@ func configureAPI(api *operations.ParkingsAuthAPI) http.Handler {
 	if err != nil {
 		panic(fmt.Sprintf("failed to initialize auth handler: %v", err))
 	}
+
+	prometheusMetrics = middlewares.NewPrometheusMetrics()
 
 	api.ServeError = errors.ServeError
 
@@ -35,14 +38,10 @@ func configureAPI(api *operations.ParkingsAuthAPI) http.Handler {
 
 	api.JSONProducer = runtime.JSONProducer()
 
-	if api.GetMetricsHandler == nil {
-		api.GetMetricsHandler = operations.GetMetricsHandlerFunc(func(params operations.GetMetricsParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetMetrics has not yet been implemented")
-		})
-	}
-	api.PostChangePasswordHandler = operations.PostChangePasswordHandlerFunc(authHandler.ChangePasswordHandler)
-	api.PostLoginHandler = operations.PostLoginHandlerFunc(authHandler.LoginHandler)
-	api.PostRegisterHandler = operations.PostRegisterHandlerFunc(authHandler.RegisterHandler)
+	api.GetAuthMetricsHandler = operations.GetAuthMetricsHandlerFunc(handlers.MetricsHandler)
+	api.PostAuthChangePasswordHandler = operations.PostAuthChangePasswordHandlerFunc(authHandler.ChangePasswordHandler)
+	api.PostAuthLoginHandler = operations.PostAuthLoginHandlerFunc(authHandler.LoginHandler)
+	api.PostAuthRegisterHandler = operations.PostAuthRegisterHandlerFunc(authHandler.RegisterHandler)
 
 	api.PreServerShutdown = func() {}
 
@@ -62,5 +61,5 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 }
 
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
-	return handler
+	return prometheusMetrics.ApplyMetrics(handler)
 }

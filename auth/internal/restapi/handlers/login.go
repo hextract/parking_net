@@ -12,7 +12,7 @@ import (
 	"github.com/h4x4d/parking_net/auth/internal/utils"
 )
 
-func (h *Handler) LoginHandler(api operations.PostLoginParams) middleware.Responder {
+func (h *Handler) LoginHandler(api operations.PostAuthLoginParams) middleware.Responder {
 	var responder middleware.Responder
 	defer utils.CatchPanic(&responder)
 
@@ -22,15 +22,15 @@ func (h *Handler) LoginHandler(api operations.PostLoginParams) middleware.Respon
 	traceID := fmt.Sprintf("%s", span.SpanContext().TraceID())
 
 	if api.Body.Login == nil || api.Body.Password == nil {
-		errCode := int64(operations.PostLoginUnauthorizedCode)
+		errCode := int64(operations.PostAuthLoginUnauthorizedCode)
 		slog.Error(
 			"failed login user",
 			slog.String("method", "POST"),
 			slog.String("trace_id", traceID),
-			slog.Int("status_code", operations.PostLoginUnauthorizedCode),
+			slog.Int("status_code", operations.PostAuthLoginUnauthorizedCode),
 			slog.String("error", "missing required fields"),
 		)
-		responder = new(operations.PostLoginUnauthorized).WithPayload(&models.Error{
+		responder = new(operations.PostAuthLoginUnauthorized).WithPayload(&models.Error{
 			ErrorMessage:    "Invalid request: missing required fields",
 			ErrorStatusCode: &errCode,
 		})
@@ -39,7 +39,7 @@ func (h *Handler) LoginHandler(api operations.PostLoginParams) middleware.Respon
 
 	token, err := impl.LoginUser(ctx, h.Client, api.Body)
 	if err != nil {
-		errCode := int64(operations.PostLoginUnauthorizedCode)
+		errCode := int64(operations.PostAuthLoginUnauthorizedCode)
 		slog.Error(
 			"failed login user",
 			slog.String("method", "POST"),
@@ -47,10 +47,10 @@ func (h *Handler) LoginHandler(api operations.PostLoginParams) middleware.Respon
 			slog.Group("user-properties",
 				slog.String("login", *api.Body.Login),
 			),
-			slog.Int("status_code", operations.PostLoginUnauthorizedCode),
+			slog.Int("status_code", operations.PostAuthLoginUnauthorizedCode),
 			slog.String("error", "authentication failed"),
 		)
-		responder = new(operations.PostLoginUnauthorized).WithPayload(&models.Error{
+		responder = new(operations.PostAuthLoginUnauthorized).WithPayload(&models.Error{
 			ErrorMessage:    "Invalid login or password",
 			ErrorStatusCode: &errCode,
 		})
@@ -64,10 +64,10 @@ func (h *Handler) LoginHandler(api operations.PostLoginParams) middleware.Respon
 		slog.Group("user-properties",
 			slog.String("login", *api.Body.Login),
 		),
-		slog.Int("status_code", operations.PostLoginOKCode),
+		slog.Int("status_code", operations.PostAuthLoginOKCode),
 	)
 
-	responder = new(operations.PostLoginOK).WithPayload(&operations.PostLoginOKBody{
+	responder = new(operations.PostAuthLoginOK).WithPayload(&operations.PostAuthLoginOKBody{
 		Token: *token,
 	})
 	return responder

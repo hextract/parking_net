@@ -4,14 +4,17 @@ global:
 
 scrape_configs:
   - job_name: 'parking'
+    metrics_path: '/metrics'
     static_configs:
       - targets: [ 'parking:8888' ]
 
   - job_name: 'booking'
+    metrics_path: '/metrics'
     static_configs:
       - targets: [ 'booking:8880' ]
 
   - job_name: 'auth'
+    metrics_path: '/auth/metrics'
     static_configs:
       - targets: [ 'auth:8800' ]
 

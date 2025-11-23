@@ -6,6 +6,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func MetricsHandler(p operations.GetMetricsParams) middleware.Responder {
+func MetricsHandler(p operations.GetAuthMetricsParams) middleware.Responder {
 	return NewCustomResponder(p.HTTPRequest, promhttp.Handler())
 }

@@ -306,6 +306,7 @@ func init() {
     },
     "/metrics": {
       "get": {
+        "security": [],
         "produces": [
           "application/json"
         ],
@@ -752,6 +753,7 @@ func init() {
     },
     "/metrics": {
       "get": {
+        "security": [],
         "produces": [
           "application/json"
         ],
