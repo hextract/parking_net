@@ -2,6 +2,7 @@ package database_service
 
 import (
 	"context"
+
 	"github.com/h4x4d/parking_net/booking/internal/grpc/client"
 	"github.com/h4x4d/parking_net/booking/internal/models"
 	"go.opentelemetry.io/otel"
@@ -10,6 +11,9 @@ import (
 func (ds *DatabaseService) CheckOwnership(ctx context.Context, BookingID int64, user *models.User) (bool, error) {
 	if user == nil {
 		return false, nil
+	}
+	if user.Role == "admin" {
+		return true, nil
 	}
 	if user.Role == "driver" {
 		booking, err := ds.GetByID(BookingID)

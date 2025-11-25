@@ -24,6 +24,29 @@ func (handler *Handler) GetBooking(params driver.GetBookingParams, user *models.
 	traceId := fmt.Sprintf("%s", span.SpanContext().TraceID())
 	ctx = metadata.AppendToOutgoingContext(ctx, "x-trace-id", traceId)
 
+	if user != nil && user.Role == "admin" {
+		bookings, errGet := handler.Database.GetAll(params.ParkingPlaceID, params.UserID)
+		if errGet != nil {
+			return utils.HandleInternalError(errGet)
+		}
+
+		slog.Info(
+			"get bookings",
+			slog.String("method", "GET"),
+			slog.String("trace_id", traceId),
+			slog.Group("user-properties",
+				slog.String("user-id", user.UserID),
+				slog.String("role", user.Role),
+				slog.Int("telegram-id", user.TelegramID),
+			),
+			slog.Int("status_code", driver.GetBookingOKCode),
+		)
+
+		result := new(driver.GetBookingOK)
+		result.SetPayload(bookings)
+		return result
+	}
+
 	if user != nil && user.Role == "driver" {
 		var userID *string
 		if params.UserID != nil {
@@ -101,7 +124,7 @@ func (handler *Handler) GetBooking(params driver.GetBookingParams, user *models.
 			}
 			return utils.HandleInternalError(parkingErr)
 		}
-		if parkingPlace.OwnerID == user.UserID {
+		if parkingPlace.OwnerID == user.UserID || user.Role == "admin" {
 			bookings, errGet := handler.Database.GetAll(params.ParkingPlaceID, nil)
 			if errGet != nil {
 				return utils.HandleInternalError(errGet)

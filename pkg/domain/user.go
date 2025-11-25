@@ -5,6 +5,7 @@ type UserRole string
 const (
 	UserRoleDriver UserRole = "driver"
 	UserRoleOwner  UserRole = "owner"
+	UserRoleAdmin  UserRole = "admin"
 )
 
 type User struct {
@@ -21,5 +22,9 @@ func (u *User) IsDriver() bool {
 
 func (u *User) IsOwner() bool {
 	return u.Role == UserRoleOwner
+}
+
+func (u *User) IsAdmin() bool {
+	return u.Role == UserRoleAdmin
 }
 
