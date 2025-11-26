@@ -142,6 +142,60 @@ func init() {
         }
       }
     },
+    "/auth/me": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "summary": "Get current user info by token",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "JWT token",
+            "name": "api_key",
+            "in": "header",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "login": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "driver",
+                    "owner",
+                    "admin"
+                  ]
+                },
+                "telegram_id": {
+                  "type": "integer"
+                },
+                "user_id": {
+                  "description": "Keycloak user ID (UUID)",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
     "/auth/metrics": {
       "get": {
         "produces": [
@@ -359,6 +413,60 @@ func init() {
           },
           "401": {
             "description": "Incorrect login data",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "summary": "Get current user info by token",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "JWT token",
+            "name": "api_key",
+            "in": "header",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "login": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "driver",
+                    "owner",
+                    "admin"
+                  ]
+                },
+                "telegram_id": {
+                  "type": "integer"
+                },
+                "user_id": {
+                  "description": "Keycloak user ID (UUID)",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
             "schema": {
               "$ref": "#/definitions/Error"
             }

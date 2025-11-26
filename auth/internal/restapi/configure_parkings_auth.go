@@ -39,6 +39,7 @@ func configureAPI(api *operations.ParkingsAuthAPI) http.Handler {
 	api.JSONProducer = runtime.JSONProducer()
 
 	api.GetAuthMetricsHandler = operations.GetAuthMetricsHandlerFunc(handlers.MetricsHandler)
+	api.GetAuthMeHandler = operations.GetAuthMeHandlerFunc(authHandler.GetMeHandler)
 	api.PostAuthChangePasswordHandler = operations.PostAuthChangePasswordHandlerFunc(authHandler.ChangePasswordHandler)
 	api.PostAuthLoginHandler = operations.PostAuthLoginHandlerFunc(authHandler.LoginHandler)
 	api.PostAuthRegisterHandler = operations.PostAuthRegisterHandlerFunc(authHandler.RegisterHandler)

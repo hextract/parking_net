@@ -128,6 +128,42 @@ paths:
           schema:
             $ref: "#/definitions/Error"
           description: "Incorrect old password"
+  /auth/me:
+    get:
+      summary: "Get current user info by token"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "header"
+          name: "api_key"
+          type: "string"
+          required: true
+          description: "JWT token"
+      responses:
+        200:
+          description: "Success"
+          schema:
+            type: "object"
+            properties:
+              user_id:
+                type: "string"
+                description: "Keycloak user ID (UUID)"
+              login:
+                type: "string"
+              email:
+                type: "string"
+              role:
+                type: "string"
+                enum:
+                  - "driver"
+                  - "owner"
+                  - "admin"
+              telegram_id:
+                type: integer
+        401:
+          schema:
+            $ref: "#/definitions/Error"
+          description: "Unauthorized"
   /auth/metrics:
     get:
       summary: "Prometheus metrics"

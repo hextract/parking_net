@@ -58,7 +58,7 @@ Handler → Service → Repository → Database
 ### Core Technologies
 
 - **Language**: Go 1.23.1
-- **API Framework**: 
+- **API Framework**:
   - REST: go-swagger (OpenAPI 2.0)
   - gRPC: Protocol Buffers v3
 - **Database**: PostgreSQL 16.4
@@ -191,6 +191,41 @@ Supported Commands:
 - `/start` - Initialize bot interaction
 - Interactive menus for login/register, parking operations, booking operations, and logout
 
+### 6. Frontend (Port 3000) - Standalone Deployment
+
+Responsibility: Modern web interface for the platform
+
+Features:
+- React.js with Vite for fast development
+- Tailwind CSS for beautiful, responsive UI
+- Multi-language support (English/Russian)
+- Role-based dashboards (Driver and Owner)
+- Real-time data updates
+- Mobile-responsive design
+- JWT token authentication
+- Fully decoupled from backend
+
+Driver Features:
+- Search parking places with filters
+- Create and manage bookings
+- View booking history and status
+
+Owner Features:
+- Create and manage parking places
+- View all bookings for owned parkings
+- Confirm or cancel booking requests
+- Access admin monitoring tools
+
+Common Features:
+- Admin panel with links to Jaeger, Prometheus, and Grafana
+- Monitoring and service health dashboards
+
+Deployment:
+- Standalone Docker container
+- Communicates with backend via nginx gateway
+- Can be deployed on separate server
+- Environment variable: `VITE_API_BASE_URL`
+
 ## Prerequisites
 
 Before running the project, ensure you have the following installed:
@@ -202,6 +237,29 @@ Before running the project, ensure you have the following installed:
 - Protocol Buffers Compiler (for gRPC code generation)
 - go-swagger (for API code generation)
 - Python 3 (for running integration tests)
+
+## Architecture Overview
+
+```
+┌─────────────────┐
+│   Frontend      │  Port 3000 (Standalone)
+│   React + Vite  │  Can be on separate server
+└────────┬────────┘
+         │
+         │ HTTP/HTTPS
+         │
+┌────────▼────────┐
+│  Nginx Gateway  │  Port 80
+│  CORS Enabled   │  Routes: /auth, /parking, /booking
+└────────┬────────┘
+         │
+    ┌────┼────┬────────┐
+    │    │    │        │
+┌───▼┐ ┌─▼─┐ ┌▼──┐ ┌──▼──┐
+│Auth│ │Park│ │Book│ │Keys │
+│8800│ │8888│ │8880│ │8080 │
+└────┘ └────┘ └────┘ └─────┘
+```
 
 ## Quick Start
 
@@ -232,7 +290,8 @@ Before running the project, ensure you have the following installed:
    ```
 
    This will:
-   - Start all services
+   - Start all backend services
+   - Start the frontend on port 3000
    - Automatically run setup service after database and Keycloak are ready
    - Configure Keycloak client secret from your `.env` file
    - Create all required database tables
@@ -248,7 +307,14 @@ Before running the project, ensure you have the following installed:
 
    All services should be running. The setup service will show as "exited" after successful completion, which is normal.
 
-6. Run tests:
+6. Access the application through nginx gateway:
+   ```bash
+   open http://localhost
+   ```
+
+   Backend APIs are available at http://localhost
+
+7. Run backend integration tests:
    ```bash
    python3 tests/integration_test.py
    ```
@@ -257,6 +323,45 @@ Before running the project, ensure you have the following installed:
    ```bash
    make test
    ```
+
+8. Run frontend tests:
+   ```bash
+   cd frontend
+   npm install
+   npm test
+   ```
+
+   Expected: **47 tests passing** ✓
+
+### Frontend Setup (Standalone)
+
+The frontend can be deployed on a separate server from backend:
+
+**Example: Backend on 192.168.1.100, Frontend on 192.168.1.101**
+
+1. On backend server (192.168.1.100):
+   ```bash
+   docker-compose up -d
+   ```
+   Nginx gateway will be available at http://192.168.1.100
+
+2. On frontend server (192.168.1.101):
+   ```bash
+   cd frontend
+   docker build --build-arg VITE_API_BASE_URL=http://192.168.1.100 -t parking-frontend .
+   docker run -d -p 3000:80 parking-frontend
+   ```
+   Frontend will be available at http://192.168.1.101:3000
+
+3. For development:
+   ```bash
+   cd frontend
+   echo "VITE_API_BASE_URL=http://192.168.1.100" > .env
+   npm install
+   npm run dev
+   ```
+
+See `frontend/README.md` for detailed instructions.
 
 ### How Automated Setup Works
 
@@ -600,6 +705,16 @@ parking_net/
 │   │   ├── models/            # API models (generated)
 │   │   └── restapi/           # Generated API code
 │   └── api/swagger/           # OpenAPI specification
+├── frontend/                   # React.js web interface
+│   ├── src/
+│   │   ├── components/        # Reusable React components
+│   │   ├── context/           # React context providers
+│   │   ├── pages/             # Page components
+│   │   ├── services/          # API service layer
+│   │   └── config/            # Configuration files
+│   ├── public/                # Static assets
+│   ├── Dockerfile             # Frontend Docker config
+│   └── package.json           # NPM dependencies
 ├── booking/                    # Booking microservice
 │   ├── cmd/
 │   ├── internal/
@@ -828,7 +943,7 @@ Security Best Practices:
 Before deploying to production:
 
 1. **Configuration Management**: Use proper secret managers (Vault, AWS Secrets Manager)
-2. **Database**: 
+2. **Database**:
    - Set up replication and backups
    - Use connection pooling
    - Implement migration strategy
@@ -859,6 +974,7 @@ Before deploying to production:
 | Auth | auth-svc | 8800 | 8800 | Authentication |
 | Notification | notification-svc | - | - | Notification handling |
 | Telegram Bot | telegram | - | - | Bot interface |
+| Frontend | parking-net-frontend | 80 | 3000 | React web interface |
 | Keycloak | keycloak | 8080 | 8080 | Identity management |
 | Kafka | kafka | 9092 | 9092 | Message broker |
 | Zookeeper | zookeeper | 2181 | 2181 | Kafka coordination |
@@ -867,9 +983,11 @@ Before deploying to production:
 
 ## Access Points
 
-- **Parking API**: http://localhost:8888
-- **Booking API**: http://localhost:8880
-- **Auth API**: http://localhost:8800
+- **Nginx Gateway**: http://localhost (port 80)
+  - `/auth` - Auth API
+  - `/parking` - Parking API
+  - `/booking` - Booking API
+- **Frontend** (standalone): http://localhost:3000
 - **Keycloak Admin**: http://localhost:8080
 - **Jaeger UI**: http://localhost:16686
 - **Prometheus**: http://localhost:9090

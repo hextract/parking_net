@@ -42,16 +42,33 @@ func NewParkingsAuthAPI(spec *loads.Document) *ParkingsAuthAPI {
 
 		JSONProducer: runtime.JSONProducer(),
 
+		GetAuthMeHandler: GetAuthMeHandlerFunc(func(params GetAuthMeParams) middleware.Responder {
+			_ = params
+
+			return middleware.NotImplemented("operation GetAuthMe has not yet been implemented")
+		}),
+
 		GetAuthMetricsHandler: GetAuthMetricsHandlerFunc(func(params GetAuthMetricsParams) middleware.Responder {
+			_ = params
+
 			return middleware.NotImplemented("operation GetAuthMetrics has not yet been implemented")
 		}),
+
 		PostAuthChangePasswordHandler: PostAuthChangePasswordHandlerFunc(func(params PostAuthChangePasswordParams) middleware.Responder {
+			_ = params
+
 			return middleware.NotImplemented("operation PostAuthChangePassword has not yet been implemented")
 		}),
+
 		PostAuthLoginHandler: PostAuthLoginHandlerFunc(func(params PostAuthLoginParams) middleware.Responder {
+			_ = params
+
 			return middleware.NotImplemented("operation PostAuthLogin has not yet been implemented")
 		}),
+
 		PostAuthRegisterHandler: PostAuthRegisterHandlerFunc(func(params PostAuthRegisterParams) middleware.Responder {
+			_ = params
+
 			return middleware.NotImplemented("operation PostAuthRegister has not yet been implemented")
 		}),
 	}
@@ -90,6 +107,8 @@ type ParkingsAuthAPI struct {
 	//   - application/json
 	JSONProducer runtime.Producer
 
+	// GetAuthMeHandler sets the operation handler for the get auth me operation
+	GetAuthMeHandler GetAuthMeHandler
 	// GetAuthMetricsHandler sets the operation handler for the get auth metrics operation
 	GetAuthMetricsHandler GetAuthMetricsHandler
 	// PostAuthChangePasswordHandler sets the operation handler for the post auth change password operation
@@ -115,7 +134,7 @@ type ParkingsAuthAPI struct {
 	CommandLineOptionsGroups []swag.CommandLineOptionsGroup
 
 	// User defined logger function.
-	Logger func(string, ...interface{})
+	Logger func(string, ...any)
 }
 
 // UseRedoc for documentation at /docs
@@ -175,6 +194,9 @@ func (o *ParkingsAuthAPI) Validate() error {
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
+	if o.GetAuthMeHandler == nil {
+		unregistered = append(unregistered, "GetAuthMeHandler")
+	}
 	if o.GetAuthMetricsHandler == nil {
 		unregistered = append(unregistered, "GetAuthMetricsHandler")
 	}
@@ -211,12 +233,12 @@ func (o *ParkingsAuthAPI) Authorizer() runtime.Authorizer {
 }
 
 // ConsumersFor gets the consumers for the specified media types.
+//
 // MIME type parameters are ignored here.
 func (o *ParkingsAuthAPI) ConsumersFor(mediaTypes []string) map[string]runtime.Consumer {
 	result := make(map[string]runtime.Consumer, len(mediaTypes))
 	for _, mt := range mediaTypes {
-		switch mt {
-		case "application/json":
+		if mt == "application/json" {
 			result["application/json"] = o.JSONConsumer
 		}
 
@@ -224,16 +246,17 @@ func (o *ParkingsAuthAPI) ConsumersFor(mediaTypes []string) map[string]runtime.C
 			result[mt] = c
 		}
 	}
+
 	return result
 }
 
 // ProducersFor gets the producers for the specified media types.
+//
 // MIME type parameters are ignored here.
 func (o *ParkingsAuthAPI) ProducersFor(mediaTypes []string) map[string]runtime.Producer {
 	result := make(map[string]runtime.Producer, len(mediaTypes))
 	for _, mt := range mediaTypes {
-		switch mt {
-		case "application/json":
+		if mt == "application/json" {
 			result["application/json"] = o.JSONProducer
 		}
 
@@ -241,6 +264,7 @@ func (o *ParkingsAuthAPI) ProducersFor(mediaTypes []string) map[string]runtime.P
 			result[mt] = p
 		}
 	}
+
 	return result
 }
 
@@ -275,6 +299,10 @@ func (o *ParkingsAuthAPI) initHandlerCache() {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
 
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/auth/me"] = NewGetAuthMe(o.context, o.GetAuthMeHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
