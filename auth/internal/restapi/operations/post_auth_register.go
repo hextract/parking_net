@@ -57,7 +57,6 @@ func (o *PostAuthRegister) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }
@@ -146,7 +145,7 @@ func (o *PostAuthRegisterBody) validatePassword(formats strfmt.Registry) error {
 	return nil
 }
 
-var postAuthRegisterBodyTypeRolePropEnum []any
+var postAuthRegisterBodyTypeRolePropEnum []interface{}
 
 func init() {
 	var res []string

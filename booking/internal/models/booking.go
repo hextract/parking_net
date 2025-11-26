@@ -24,16 +24,16 @@ type Booking struct {
 	BookingID int64 `json:"booking_id,omitempty"`
 
 	// date from
-	// Example: 31-12-2024
+	// Example: 2024-12-31T10:00:00Z
 	// Required: true
-	// Pattern: ^\d{2}-\d{2}-\d{4}$
-	DateFrom *string `json:"date_from"`
+	// Format: date-time
+	DateFrom *strfmt.DateTime `json:"date_from"`
 
 	// date to
-	// Example: 31-12-2025
+	// Example: 2024-12-31T18:00:00Z
 	// Required: true
-	// Pattern: ^\d{2}-\d{2}-\d{4}$
-	DateTo *string `json:"date_to"`
+	// Format: date-time
+	DateTo *strfmt.DateTime `json:"date_to"`
 
 	// full cost
 	FullCost int64 `json:"full_cost,omitempty"`
@@ -82,7 +82,7 @@ func (m *Booking) validateDateFrom(formats strfmt.Registry) error {
 		return err
 	}
 
-	if err := validate.Pattern("date_from", "body", *m.DateFrom, `^\d{2}-\d{2}-\d{4}$`); err != nil {
+	if err := validate.FormatOf("date_from", "body", "date-time", m.DateFrom.String(), formats); err != nil {
 		return err
 	}
 
@@ -95,7 +95,7 @@ func (m *Booking) validateDateTo(formats strfmt.Registry) error {
 		return err
 	}
 
-	if err := validate.Pattern("date_to", "body", *m.DateTo, `^\d{2}-\d{2}-\d{4}$`); err != nil {
+	if err := validate.FormatOf("date_to", "body", "date-time", m.DateTo.String(), formats); err != nil {
 		return err
 	}
 

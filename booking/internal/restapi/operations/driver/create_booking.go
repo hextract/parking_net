@@ -81,12 +81,16 @@ func (o *CreateBooking) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 type CreateBookingBody struct {
 
 	// date from
+	// Example: 2024-12-31T10:00:00Z
 	// Required: true
-	DateFrom *string `json:"date_from"`
+	// Format: date-time
+	DateFrom *strfmt.DateTime `json:"date_from"`
 
 	// date to
+	// Example: 2024-12-31T18:00:00Z
 	// Required: true
-	DateTo *string `json:"date_to"`
+	// Format: date-time
+	DateTo *strfmt.DateTime `json:"date_to"`
 
 	// parking place id
 	// Required: true
@@ -121,12 +125,20 @@ func (o *CreateBookingBody) validateDateFrom(formats strfmt.Registry) error {
 		return err
 	}
 
+	if err := validate.FormatOf("object"+"."+"date_from", "body", "date-time", o.DateFrom.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (o *CreateBookingBody) validateDateTo(formats strfmt.Registry) error {
 
 	if err := validate.Required("object"+"."+"date_to", "body", o.DateTo); err != nil {
+		return err
+	}
+
+	if err := validate.FormatOf("object"+"."+"date_to", "body", "date-time", o.DateTo.String(), formats); err != nil {
 		return err
 	}
 

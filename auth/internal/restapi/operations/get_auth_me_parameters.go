@@ -27,6 +27,7 @@ func NewGetAuthMeParams() GetAuthMeParams {
 //
 // swagger:parameters GetAuthMe
 type GetAuthMeParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 

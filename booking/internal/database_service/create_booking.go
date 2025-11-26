@@ -3,6 +3,7 @@ package database_service
 import (
 	"context"
 	"fmt"
+	"github.com/go-openapi/strfmt"
 	"github.com/h4x4d/parking_net/booking/internal/grpc/client"
 	"github.com/h4x4d/parking_net/booking/internal/models"
 	"go.opentelemetry.io/otel"
@@ -19,19 +20,11 @@ func (ds *DatabaseService) CreateBooking(booking *models.Booking) (*int64, error
 
 	if booking.DateFrom != nil {
 		fieldNames = append(fieldNames, "date_from")
-		date, err := time.Parse("02-01-2006", *booking.DateFrom)
-		if err != nil {
-			return nil, err
-		}
-		values = append(values, date.Format(time.DateOnly))
+		values = append(values, time.Time(*booking.DateFrom))
 	}
 	if booking.DateTo != nil {
 		fieldNames = append(fieldNames, "date_to")
-		date, err := time.Parse("02-01-2006", *booking.DateTo)
-		if err != nil {
-			return nil, err
-		}
-		values = append(values, date.Format(time.DateOnly))
+		values = append(values, time.Time(*booking.DateTo))
 	}
 	if booking.ParkingPlaceID != nil {
 		fieldNames = append(fieldNames, "parking_place_id")
@@ -63,7 +56,7 @@ func (ds *DatabaseService) CreateBooking(booking *models.Booking) (*int64, error
 	return &booking.BookingID, errInsert
 }
 
-func (ds *DatabaseService) Create(ctx context.Context, dateFrom *string, dateTo *string, parkingPlaceID *int64, userID string) (*int64, error) {
+func (ds *DatabaseService) Create(ctx context.Context, dateFrom *strfmt.DateTime, dateTo *strfmt.DateTime, parkingPlaceID *int64, userID string) (*int64, error) {
 	tracer := otel.Tracer("Booking")
 	childCtx, span := tracer.Start(ctx, "create booking in database")
 	defer span.End()
@@ -73,16 +66,13 @@ func (ds *DatabaseService) Create(ctx context.Context, dateFrom *string, dateTo 
 	if err != nil {
 		return nil, err
 	}
-	dFrom, dateErr1 := time.Parse("02-01-2006", *dateFrom)
-	dTo, dateErr2 := time.Parse("02-01-2006", *dateTo)
-	if dateErr1 != nil {
-		return nil, dateErr1
+	dFrom := time.Time(*dateFrom)
+	dTo := time.Time(*dateTo)
+	if dFrom.After(dTo) || dFrom.Equal(dTo) {
+		return nil, fmt.Errorf("date_from must be before date_to")
 	}
-	if dateErr2 != nil {
-		return nil, dateErr2
-	}
-	hours := int64(dTo.Sub(dFrom).Hours())
-	cost := parkingPlace.HourlyRate * hours
+	hours := dTo.Sub(dFrom).Hours()
+	cost := int64(float64(parkingPlace.HourlyRate) * hours)
 
 	booking := &models.Booking{
 		DateFrom:        dateFrom,

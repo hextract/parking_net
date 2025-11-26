@@ -25,6 +25,7 @@ func NewGetAuthMetricsParams() GetAuthMetricsParams {
 //
 // swagger:parameters GetAuthMetrics
 type GetAuthMetricsParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 }

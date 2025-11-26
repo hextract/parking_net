@@ -3,12 +3,14 @@ package database_service
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
+	"github.com/go-openapi/strfmt"
 	"github.com/h4x4d/parking_net/booking/internal/grpc/client"
 	"github.com/h4x4d/parking_net/booking/internal/models"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.opentelemetry.io/otel"
-	"strings"
-	"time"
 )
 
 func (ds *DatabaseService) Update(ctx context.Context, bookingId int64, booking *models.Booking) (*models.Booking, error) {
@@ -22,20 +24,12 @@ func (ds *DatabaseService) Update(ctx context.Context, bookingId int64, booking 
 
 	if booking.DateFrom != nil {
 		settings = append(settings, fmt.Sprintf("date_from = $%d", len(values)+1))
-		date, err := time.Parse("02-01-2006", *booking.DateFrom)
-		if err != nil {
-			return nil, err
-		}
-		values = append(values, date.Format(time.DateOnly))
+		values = append(values, time.Time(*booking.DateFrom))
 	}
 
 	if booking.DateTo != nil {
 		settings = append(settings, fmt.Sprintf("date_to = $%d", len(values)+1))
-		date, err := time.Parse("02-01-2006", *booking.DateTo)
-		if err != nil {
-			return nil, err
-		}
-		values = append(values, date.Format(time.DateOnly))
+		values = append(values, time.Time(*booking.DateTo))
 	}
 
 	if booking.ParkingPlaceID != nil {
@@ -48,16 +42,13 @@ func (ds *DatabaseService) Update(ctx context.Context, bookingId int64, booking 
 			return nil, err
 		}
 
-		dFrom, dateErr1 := time.Parse("02-01-2006", *booking.DateFrom)
-		dTo, dateErr2 := time.Parse("02-01-2006", *booking.DateTo)
-		if dateErr1 != nil {
-			return nil, dateErr1
+		dFrom := time.Time(*booking.DateFrom)
+		dTo := time.Time(*booking.DateTo)
+		if dFrom.After(dTo) || dFrom.Equal(dTo) {
+			return nil, fmt.Errorf("date_from must be before date_to")
 		}
-		if dateErr2 != nil {
-			return nil, dateErr2
-		}
-		hours := int64(dTo.Sub(dFrom).Hours())
-		booking.FullCost = parkingPlace.HourlyRate * hours
+		hours := dTo.Sub(dFrom).Hours()
+		booking.FullCost = int64(float64(parkingPlace.HourlyRate) * hours)
 	}
 
 	settings = append(settings, fmt.Sprintf("full_cost = $%d", len(values)+1))
@@ -77,15 +68,15 @@ func (ds *DatabaseService) Update(ctx context.Context, bookingId int64, booking 
 		fmt.Sprintf("id = $%d", len(values)+1))
 	values = append(values, bookingId)
 
-	from := new(pgtype.Date)
-	to := new(pgtype.Date)
+	from := new(pgtype.Timestamp)
+	to := new(pgtype.Timestamp)
 
 	errUpdate := ds.pool.QueryRow(context.Background(), query, values...).Scan(&booking.BookingID, from,
 		to, booking.ParkingPlaceID, &booking.FullCost, &booking.Status, &booking.UserID)
 
-	fromStr := from.Time.Format("02-01-2006")
-	toStr := to.Time.Format("02-01-2006")
-	booking.DateFrom = &fromStr
-	booking.DateTo = &toStr
+	fromDT := strfmt.DateTime(from.Time)
+	toDT := strfmt.DateTime(to.Time)
+	booking.DateFrom = &fromDT
+	booking.DateTo = &toDT
 	return booking, errUpdate
 }

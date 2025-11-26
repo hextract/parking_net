@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -18,11 +19,10 @@ import (
 	"syscall"
 	"time"
 
-	flags "github.com/jessevdk/go-flags"
-	"golang.org/x/net/netutil"
-
 	"github.com/go-openapi/runtime/flagext"
 	"github.com/go-openapi/swag"
+	flags "github.com/jessevdk/go-flags"
+	"golang.org/x/net/netutil"
 
 	"github.com/h4x4d/parking_net/auth/internal/restapi/operations"
 )
@@ -104,7 +104,7 @@ type Server struct {
 }
 
 // Logf logs message either via defined user logger or via system one if no user logger is defined.
-func (s *Server) Logf(f string, args ...any) {
+func (s *Server) Logf(f string, args ...interface{}) {
 	if s.api != nil && s.api.Logger != nil {
 		s.api.Logger(f, args...)
 	} else {
@@ -114,7 +114,7 @@ func (s *Server) Logf(f string, args ...any) {
 
 // Fatalf logs message either via defined user logger or via system one if no user logger is defined.
 // Exits with non-zero status after printing
-func (s *Server) Fatalf(f string, args ...any) {
+func (s *Server) Fatalf(f string, args ...interface{}) {
 	if s.api != nil && s.api.Logger != nil {
 		s.api.Logger(f, args...)
 		os.Exit(1)
@@ -188,8 +188,8 @@ func (s *Server) Serve() (err error) {
 		s.Logf("Serving parkings auth at unix://%s", s.SocketPath)
 		go func(l net.Listener) {
 			defer wg.Done()
-			if errServe := domainSocket.Serve(l); errServe != nil && !errors.Is(errServe, http.ErrServerClosed) {
-				s.Fatalf("%v", errServe)
+			if err := domainSocket.Serve(l); err != nil && err != http.ErrServerClosed {
+				s.Fatalf("%v", err)
 			}
 			s.Logf("Stopped serving parkings auth at unix://%s", s.SocketPath)
 		}(s.domainSocketL)
@@ -218,8 +218,8 @@ func (s *Server) Serve() (err error) {
 		s.Logf("Serving parkings auth at http://%s", s.httpServerL.Addr())
 		go func(l net.Listener) {
 			defer wg.Done()
-			if errServe := httpServer.Serve(l); errServe != nil && !errors.Is(errServe, http.ErrServerClosed) {
-				s.Fatalf("%v", errServe)
+			if err := httpServer.Serve(l); err != nil && err != http.ErrServerClosed {
+				s.Fatalf("%v", err)
 			}
 			s.Logf("Stopped serving parkings auth at http://%s", l.Addr())
 		}(s.httpServerL)
@@ -280,7 +280,7 @@ func (s *Server) Serve() (err error) {
 			caCertPool := x509.NewCertPool()
 			ok := caCertPool.AppendCertsFromPEM(caCert)
 			if !ok {
-				return errors.New("cannot parse CA certificate")
+				return fmt.Errorf("cannot parse CA certificate")
 			}
 			httpsServer.TLSConfig.ClientCAs = caCertPool
 			httpsServer.TLSConfig.ClientAuth = tls.RequireAndVerifyClientCert
@@ -311,8 +311,8 @@ func (s *Server) Serve() (err error) {
 		s.Logf("Serving parkings auth at https://%s", s.httpsServerL.Addr())
 		go func(l net.Listener) {
 			defer wg.Done()
-			if errServe := httpsServer.Serve(l); errServe != nil && !errors.Is(errServe, http.ErrServerClosed) {
-				s.Fatalf("%v", errServe)
+			if err := httpsServer.Serve(l); err != nil && err != http.ErrServerClosed {
+				s.Fatalf("%v", err)
 			}
 			s.Logf("Stopped serving parkings auth at https://%s", l.Addr())
 		}(tls.NewListener(s.httpsServerL, httpsServer.TLSConfig))

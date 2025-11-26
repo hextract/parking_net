@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+
 	"github.com/Nerzal/gocloak/v13"
 	"github.com/h4x4d/parking_net/pkg/models"
-	"strconv"
 )
 
 func (c Client) CheckToken(ctx context.Context, token string) (user *models.User, err error) {
@@ -40,16 +41,15 @@ func (c Client) CheckToken(ctx context.Context, token string) (user *models.User
 	}
 	userId := *users[0].ID
 
-	if users[0].Attributes == nil {
-		return nil, errors.New("user attributes are missing")
-	}
-	telegramIDAttr, exists := (*users[0].Attributes)["telegram_id"]
-	if !exists || len(telegramIDAttr) == 0 || telegramIDAttr[0] == "" {
-		return nil, errors.New("telegram ID is missing")
-	}
-	tgId, err := strconv.Atoi(telegramIDAttr[0])
-	if err != nil {
-		return nil, fmt.Errorf("invalid telegram ID format: %w", err)
+	tgId := 0
+	if users[0].Attributes != nil {
+		telegramIDAttr, exists := (*users[0].Attributes)["telegram_id"]
+		if exists && len(telegramIDAttr) > 0 && telegramIDAttr[0] != "" {
+			parsedId, err := strconv.Atoi(telegramIDAttr[0])
+			if err == nil {
+				tgId = parsedId
+			}
+		}
 	}
 
 	groups, err := c.Client.GetUserGroups(ctx, adminToken.AccessToken, c.Config.Realm, userId, gocloak.GetGroupsParams{})

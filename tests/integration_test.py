@@ -17,8 +17,15 @@ import time
 import sys
 import urllib.request
 import urllib.parse
-from datetime import datetime, timedelta
+import os
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, List
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print('dotenv not found')
 
 NGINX_PORT = 80
 BASE_URL = f'http://localhost:{NGINX_PORT}'
@@ -27,6 +34,12 @@ BASE_URLS = {
     'parking': BASE_URL,
     'booking': BASE_URL
 }
+
+KEYCLOAK_PORT = int(os.getenv('KEYCLOAK_PORT', '8080'))
+KEYCLOAK_URL = f'http://localhost:{KEYCLOAK_PORT}'
+KEYCLOAK_ADMIN = os.getenv('KEYCLOAK_ADMIN', 'admin')
+KEYCLOAK_ADMIN_PASSWORD = os.getenv('KEYCLOAK_ADMIN_PASSWORD', 'admin')
+KEYCLOAK_REALM = os.getenv('KEYCLOAK_REALM', 'parking-users')
 
 class Response:
     def __init__(self, status_code: int, text: str):
@@ -98,6 +111,7 @@ class TestRunner:
         self.timestamp = int(time.time())
         self.owner_token: Optional[str] = None
         self.driver_token: Optional[str] = None
+        self.admin_token: Optional[str] = None
         self.parking_id: Optional[int] = None
         self.booking_ids: List[int] = []
         self.parking_ids: List[int] = []
@@ -116,6 +130,10 @@ class TestRunner:
     
     def log(self, message: str, status: str = "INFO"):
         print(f"[{status}] {message}")
+    
+    def format_datetime(self, dt: datetime) -> str:
+        """Format datetime to RFC3339 format for API"""
+        return dt.isoformat().replace('+00:00', 'Z')
     
     def assert_status(self, response: Response, expected: int, test_name: str):
         if response.status_code == 0:
@@ -329,8 +347,8 @@ class TestRunner:
             return True
         self.booking_client.set_token(self.driver_token)
         
-        date_from = (datetime.now() + timedelta(days=1)).strftime("%d-%m-%Y")
-        date_to = (datetime.now() + timedelta(days=2)).strftime("%d-%m-%Y")
+        date_from = self.format_datetime(datetime.now(timezone.utc) + timedelta(days=1, hours=10))
+        date_to = self.format_datetime(datetime.now(timezone.utc) + timedelta(days=1, hours=18))
         
         data = {
             "parking_place_id": self.parking_id,
@@ -362,8 +380,8 @@ class TestRunner:
             return True
         self.booking_client.set_token(self.driver_token)
         
-        date_from = (datetime.now() + timedelta(days=3)).strftime("%d-%m-%Y")
-        date_to = (datetime.now() + timedelta(days=4)).strftime("%d-%m-%Y")
+        date_from = self.format_datetime(datetime.now(timezone.utc) + timedelta(days=3, hours=9))
+        date_to = self.format_datetime(datetime.now(timezone.utc) + timedelta(days=3, hours=17))
         
         data = {
             "parking_place_id": self.parking_id,
@@ -644,8 +662,8 @@ class TestRunner:
         self.booking_client.set_token(self.driver_token)
         
         # Create a booking to delete
-        date_from = (datetime.now() + timedelta(days=5)).strftime("%d-%m-%Y")
-        date_to = (datetime.now() + timedelta(days=6)).strftime("%d-%m-%Y")
+        date_from = self.format_datetime(datetime.now(timezone.utc) + timedelta(days=5, hours=8))
+        date_to = self.format_datetime(datetime.now(timezone.utc) + timedelta(days=5, hours=16))
         
         data = {
             "parking_place_id": self.parking_id,
@@ -698,8 +716,8 @@ class TestRunner:
         
         # Create a booking as driver
         self.booking_client.set_token(self.driver_token)
-        date_from = (datetime.now() + timedelta(days=7)).strftime("%d-%m-%Y")
-        date_to = (datetime.now() + timedelta(days=8)).strftime("%d-%m-%Y")
+        date_from = self.format_datetime(datetime.now(timezone.utc) + timedelta(days=7, hours=11))
+        date_to = self.format_datetime(datetime.now(timezone.utc) + timedelta(days=7, hours=19))
         
         data = {
             "parking_place_id": self.parking_id,
@@ -835,6 +853,500 @@ class TestRunner:
         self.log(f"Correctly returned {resp.status_code} for unauthorized/non-existent parking deletion")
         return True
     
+    def test_get_user_info_owner(self):
+        self.log("Test 26: Get User Info (Owner)")
+        if not self.owner_token:
+            self.log("SKIP: No owner token available (previous test failed)", "WARN")
+            return True
+        
+        self.auth_client.set_token(self.owner_token)
+        resp = self.auth_client.get("/auth/me")
+        if not self.assert_status(resp, 200, "Get User Info (Owner)"):
+            return False
+        
+        user_info = resp.json()
+        required_fields = ['user_id', 'login', 'email', 'role', 'telegram_id']
+        for field in required_fields:
+            if field not in user_info:
+                self.log(f"FAILED: Missing field '{field}' in response. Response: {user_info}", "ERROR")
+                self.failed += 1
+                return False
+        
+        if user_info.get('role') != 'owner':
+            self.log(f"FAILED: Expected role 'owner', got '{user_info.get('role')}'", "ERROR")
+            self.failed += 1
+            return False
+        
+        if not user_info.get('user_id'):
+            self.log(f"FAILED: user_id is empty. Response: {user_info}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log(f"User info retrieved: login={user_info.get('login')}, role={user_info.get('role')}")
+        return True
+    
+    def test_get_user_info_driver(self):
+        self.log("Test 27: Get User Info (Driver)")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        
+        self.auth_client.set_token(self.driver_token)
+        resp = self.auth_client.get("/auth/me")
+        if not self.assert_status(resp, 200, "Get User Info (Driver)"):
+            return False
+        
+        user_info = resp.json()
+        if user_info.get('role') != 'driver':
+            self.log(f"FAILED: Expected role 'driver', got '{user_info.get('role')}'", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log(f"Driver info retrieved: login={user_info.get('login')}, role={user_info.get('role')}")
+        return True
+    
+    def test_get_user_info_unauthorized(self):
+        self.log("Test 28: Get User Info Without Token (401/422)")
+        self.auth_client.set_token(None)
+        resp = self.auth_client.get("/auth/me")
+        if resp.status_code not in [401, 422]:
+            self.log(f"FAILED: Expected 401/422 for missing token, got {resp.status_code}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log(f"Correctly returned {resp.status_code} for request without token")
+        self.passed += 1
+        return True
+    
+    def test_get_user_info_invalid_token(self):
+        self.log("Test 29: Get User Info With Invalid Token (401)")
+        self.auth_client.set_token("invalid-token-12345")
+        resp = self.auth_client.get("/auth/me")
+        if resp.status_code not in [401, 403]:
+            self.log(f"FAILED: Expected 401/403 for invalid token, got {resp.status_code}. Body: {resp.text}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log(f"Correctly returned {resp.status_code} for request with invalid token")
+        self.passed += 1
+        return True
+    
+    def test_auth_metrics(self):
+        self.log("Test 30: Get Auth Metrics")
+        resp = self.auth_client.get("/auth/metrics")
+        if not self.assert_status(resp, 200, "Get Auth Metrics"):
+            return False
+        
+        metrics_text = resp.text
+        if not metrics_text or len(metrics_text) == 0:
+            self.log("FAILED: Metrics response is empty", "ERROR")
+            self.failed += 1
+            return False
+        
+        if "http_requests_total" not in metrics_text and "go_" not in metrics_text:
+            self.log("WARN: Metrics response doesn't contain expected Prometheus metrics", "WARN")
+        
+        self.log("Auth metrics endpoint accessible")
+        return True
+    
+    def test_change_password(self):
+        self.log("Test 31: Change Password")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        
+        login = f"driver_{self.timestamp}"
+        old_password = "password123"
+        new_password = "newpassword456"
+        
+        data = {
+            "login": login,
+            "oldPassword": old_password,
+            "newPassword": new_password
+        }
+        
+        resp = self.auth_client.post("/auth/change-password", data)
+        if not self.assert_status(resp, 200, "Change Password"):
+            return False
+        
+        result = resp.json()
+        if 'token' not in result or not result.get('token'):
+            self.log(f"FAILED: No token in response. Response: {result}", "ERROR")
+            self.failed += 1
+            return False
+        
+        new_token = result['token']
+        
+        resp = self.auth_client.post("/auth/login", {"login": login, "password": new_password})
+        if not self.assert_status(resp, 200, "Login With New Password"):
+            return False
+        
+        resp = self.auth_client.post("/auth/login", {"login": login, "password": old_password})
+        if resp.status_code != 401:
+            self.log(f"FAILED: Old password should not work, got status {resp.status_code}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.driver_token = new_token
+        self.log("Password changed successfully: new password works, old password rejected")
+        return True
+    
+    def test_change_password_wrong_old_password(self):
+        self.log("Test 32: Change Password With Wrong Old Password (401)")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        
+        login = f"driver_{self.timestamp}"
+        
+        data = {
+            "login": login,
+            "oldPassword": "wrongpassword",
+            "newPassword": "newpassword789"
+        }
+        
+        resp = self.auth_client.post("/auth/change-password", data)
+        if not self.assert_status(resp, 401, "Change Password Wrong Old Password"):
+            return False
+        
+        resp = self.auth_client.post("/auth/login", {"login": login, "password": "newpassword456"})
+        if not self.assert_status(resp, 200, "Login With Current Password After Failed Change"):
+            return False
+        
+        self.log("Correctly returned 401 for wrong old password, password unchanged")
+        return True
+    
+    def test_change_password_invalid_user(self):
+        self.log("Test 33: Change Password For Non-Existent User (400/401)")
+        data = {
+            "login": "nonexistent_user_12345",
+            "oldPassword": "somepassword",
+            "newPassword": "newpassword"
+        }
+        
+        resp = self.auth_client.post("/auth/change-password", data)
+        if resp.status_code not in [400, 401, 404]:
+            self.log(f"FAILED: Expected 400/401/404, got {resp.status_code}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log(f"Correctly returned {resp.status_code} for non-existent user")
+        return True
+    
+    def test_change_password_missing_fields(self):
+        self.log("Test 34: Change Password With Missing Fields (400/422)")
+        data = {
+            "login": f"driver_{self.timestamp}",
+            "oldPassword": "password123"
+        }
+        
+        resp = self.auth_client.post("/auth/change-password", data)
+        if resp.status_code not in [400, 422]:
+            self.log(f"FAILED: Expected 400/422 for missing fields, got {resp.status_code}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log(f"Correctly returned {resp.status_code} for missing fields")
+        return True
+    
+    def test_register_admin_rejected(self):
+        self.log("Test 35: Register Admin User (Should Be Rejected)")
+        data = {
+            "email": f"admin_{self.timestamp}@test.com",
+            "login": f"admin_{self.timestamp}",
+            "password": "adminpass123",
+            "role": "admin",
+            "telegram_id": 999999999
+        }
+        
+        resp = self.auth_client.post("/auth/register", data)
+        if resp.status_code not in [400, 409, 422]:
+            self.log(f"FAILED: Expected 400/409/422 for admin registration, got {resp.status_code}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log(f"Correctly rejected admin registration with status {resp.status_code}")
+        return True
+    
+    def test_admin_user_get_info(self):
+        self.log("Test 36: Admin User Get Info via /auth/me")
+        if not self.admin_token:
+            self.log("SKIP: No admin token available. Admin users may need to be created manually in Keycloak", "WARN")
+            return True
+        
+        self.auth_client.set_token(self.admin_token)
+        resp = self.auth_client.get("/auth/me")
+        if not self.assert_status(resp, 200, "Get Admin User Info"):
+            return False
+        
+        user_info = resp.json()
+        required_fields = ['user_id', 'login', 'email', 'role']
+        for field in required_fields:
+            if field not in user_info:
+                self.log(f"FAILED: Missing field '{field}' in response. Response: {user_info}", "ERROR")
+                self.failed += 1
+                return False
+        
+        if user_info.get('role') != 'admin':
+            self.log(f"FAILED: Expected role 'admin', got '{user_info.get('role')}'", "ERROR")
+            self.failed += 1
+            return False
+        
+        if not user_info.get('user_id'):
+            self.log(f"FAILED: user_id is empty. Response: {user_info}", "ERROR")
+            self.failed += 1
+            return False
+        
+        telegram_id = user_info.get('telegram_id', 0)
+        if telegram_id == 0:
+            self.log("INFO: Admin user has no telegram_id (this is acceptable after our fix)")
+        
+        self.log(f"Admin user info retrieved: login={user_info.get('login')}, role={user_info.get('role')}, telegram_id={telegram_id}")
+        return True
+    
+    def test_admin_user_without_telegram_id(self):
+        self.log("Test 37: Admin User Without Telegram ID (Should Work)")
+        if not self.admin_token:
+            self.log("SKIP: No admin token available. Admin users may need to be created manually in Keycloak", "WARN")
+            return True
+        
+        self.auth_client.set_token(self.admin_token)
+        resp = self.auth_client.get("/auth/me")
+        if not self.assert_status(resp, 200, "Get Admin User Info Without Telegram ID"):
+            return False
+        
+        user_info = resp.json()
+        telegram_id = user_info.get('telegram_id', 0)
+        
+        if user_info.get('role') != 'admin':
+            self.log(f"FAILED: Expected role 'admin', got '{user_info.get('role')}'", "ERROR")
+            self.failed += 1
+            return False
+        
+        if 'telegram_id' not in user_info:
+            self.log("INFO: Admin user has no telegram_id field in response (acceptable)")
+        elif telegram_id == 0:
+            self.log("INFO: Admin user has telegram_id=0 (acceptable after our fix)")
+        
+        self.log(f"Admin user without telegram_id works correctly: role={user_info.get('role')}, telegram_id={telegram_id}")
+        return True
+    
+    def test_create_admin_user(self):
+        self.log("Test 38: Create Admin User via Keycloak API")
+        admin_login = f"admin_{self.timestamp}"
+        admin_email = f"admin_{self.timestamp}@test.com"
+        admin_password = "adminpass123"
+        
+        success = self.create_admin_user_via_keycloak(admin_login, admin_email, admin_password)
+        if not success:
+            self.log("FAILED: Could not create admin user via Keycloak API", "ERROR")
+            self.failed += 1
+            return False
+        
+        if not self.admin_token:
+            self.log("FAILED: Admin user created but no token obtained", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log("Admin user created successfully via Keycloak API")
+        return True
+    
+    def test_admin_login(self):
+        self.log("Test 39: Admin User Login")
+        if not self.admin_token:
+            self.log("SKIP: No admin token available (admin user creation may have failed)", "WARN")
+            return True
+        
+        admin_login = f"admin_{self.timestamp}"
+        admin_password = "adminpass123"
+        
+        data = {
+            "login": admin_login,
+            "password": admin_password
+        }
+        
+        resp = self.auth_client.post("/auth/login", data)
+        if not self.assert_status(resp, 200, "Admin Login"):
+            return False
+        
+        result = resp.json()
+        if 'token' not in result or not result.get('token'):
+            self.log(f"FAILED: No token in response. Response: {result}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.admin_token = result['token']
+        self.log("Admin logged in successfully")
+        return True
+    
+    def get_keycloak_admin_token(self) -> Optional[str]:
+        """Get admin token from Keycloak master realm"""
+        try:
+            url = f"{KEYCLOAK_URL}/realms/master/protocol/openid-connect/token"
+            data = urllib.parse.urlencode({
+                'grant_type': 'password',
+                'client_id': 'admin-cli',
+                'username': KEYCLOAK_ADMIN,
+                'password': KEYCLOAK_ADMIN_PASSWORD
+            }).encode('utf-8')
+            
+            req = urllib.request.Request(url, data=data, method='POST')
+            with urllib.request.urlopen(req, timeout=10) as response:
+                result = json.loads(response.read().decode('utf-8'))
+                return result.get('access_token')
+        except Exception as e:
+            self.log(f"Failed to get Keycloak admin token: {e}", "ERROR")
+            return None
+    
+    def create_admin_user_via_keycloak(self, login: str, email: str, password: str) -> bool:
+        """Create an admin user directly via Keycloak Admin API"""
+        admin_token = self.get_keycloak_admin_token()
+        if not admin_token:
+            self.log("Failed to get Keycloak admin token", "ERROR")
+            return False
+        
+        try:
+            # Check if user already exists
+            url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users"
+            params = urllib.parse.urlencode({'username': login, 'exact': 'true'})
+            check_url = f"{url}?{params}"
+            
+            headers = {
+                'Authorization': f'Bearer {admin_token}',
+                'Content-Type': 'application/json'
+            }
+            
+            req = urllib.request.Request(check_url, headers=headers, method='GET')
+            try:
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    existing_users = json.loads(response.read().decode('utf-8'))
+                    if existing_users:
+                        user_id = existing_users[0].get('id')
+                        if user_id:
+                            self.log(f"Admin user {login} already exists, ensuring admin group membership", "INFO")
+                            
+                            # Ensure user is in admin group
+                            groups_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/groups"
+                            req = urllib.request.Request(groups_url, headers=headers, method='GET')
+                            with urllib.request.urlopen(req, timeout=10) as groups_response:
+                                groups = json.loads(groups_response.read().decode('utf-8'))
+                                admin_group = None
+                                for group in groups:
+                                    if group.get('name') == 'admin':
+                                        admin_group = group
+                                        break
+                                
+                                if admin_group and admin_group.get('id'):
+                                    # Check if user is already in group
+                                    user_groups_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}/groups"
+                                    req = urllib.request.Request(user_groups_url, headers=headers, method='GET')
+                                    try:
+                                        with urllib.request.urlopen(req, timeout=10) as user_groups_response:
+                                            user_groups = json.loads(user_groups_response.read().decode('utf-8'))
+                                            in_admin_group = any(g.get('id') == admin_group.get('id') for g in user_groups)
+                                            if not in_admin_group:
+                                                # Add user to admin group
+                                                group_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}/groups/{admin_group.get('id')}"
+                                                req = urllib.request.Request(group_url, headers=headers, method='PUT')
+                                                with urllib.request.urlopen(req, timeout=10):
+                                                    self.log(f"Added existing user {login} to admin group", "INFO")
+                                    except Exception:
+                                        pass
+                            
+                            # Try to login to get token
+                            login_data = {
+                                "login": login,
+                                "password": password
+                            }
+                            resp = self.auth_client.post("/auth/login", login_data)
+                            if resp.status_code == 200:
+                                result = resp.json()
+                                self.admin_token = result.get('token')
+                                return True
+            except urllib.error.HTTPError as e:
+                if e.code != 404:
+                    pass
+            
+            # Create new user
+            user_data = {
+                "username": login,
+                "email": email,
+                "enabled": True,
+                "emailVerified": True,
+                "attributes": {}
+            }
+            
+            req = urllib.request.Request(url, 
+                                      data=json.dumps(user_data).encode('utf-8'),
+                                      headers=headers, 
+                                      method='POST')
+            
+            with urllib.request.urlopen(req, timeout=10) as response:
+                if response.status == 201:
+                    location = response.headers.get('Location')
+                    if location:
+                        user_id = location.split('/')[-1]
+                        
+                        # Set password
+                        password_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}/reset-password"
+                        password_data = {
+                            "type": "password",
+                            "value": password,
+                            "temporary": False
+                        }
+                        
+                        req = urllib.request.Request(password_url,
+                                                  data=json.dumps(password_data).encode('utf-8'),
+                                                  headers=headers,
+                                                  method='PUT')
+                        with urllib.request.urlopen(req, timeout=10):
+                            pass
+                        
+                        # Get admin group and add user to it
+                        groups_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/groups"
+                        req = urllib.request.Request(groups_url, headers=headers, method='GET')
+                        with urllib.request.urlopen(req, timeout=10) as response:
+                            groups = json.loads(response.read().decode('utf-8'))
+                            admin_group = None
+                            for group in groups:
+                                if group.get('name') == 'admin':
+                                    admin_group = group
+                                    break
+                            
+                            if admin_group and admin_group.get('id'):
+                                # Add user to admin group
+                                group_id = admin_group.get('id')
+                                group_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}/groups/{group_id}"
+                                req = urllib.request.Request(group_url, headers=headers, method='PUT')
+                                try:
+                                    with urllib.request.urlopen(req, timeout=10):
+                                        self.log(f"User {login} added to admin group", "INFO")
+                                except Exception as e:
+                                    self.log(f"Warning: Could not add user to admin group: {e}", "WARN")
+                            else:
+                                self.log("Warning: Admin group not found in realm", "WARN")
+                            
+                        # Login to get token
+                        login_data = {
+                            "login": login,
+                            "password": password
+                        }
+                        resp = self.auth_client.post("/auth/login", login_data)
+                        if resp.status_code == 200:
+                            result = resp.json()
+                            self.admin_token = result.get('token')
+                            self.log(f"Admin user {login} created successfully", "INFO")
+                            return True
+                        else:
+                            self.log(f"Admin user created but login failed: {resp.status_code}", "WARN")
+                            return False
+                else:
+                    self.log(f"Failed to create admin user: {response.status}", "ERROR")
+                    return False
+        except Exception as e:
+            self.log(f"Failed to create admin user via Keycloak: {e}", "ERROR")
+            return False
+    
     def check_services(self):
         """Check if all required services are available"""
         self.log("Checking service availability...")
@@ -882,6 +1394,11 @@ class TestRunner:
             self.test_register_driver,
             self.test_login_owner,
             self.test_login_driver,
+            self.test_get_user_info_owner,
+            self.test_get_user_info_driver,
+            self.test_get_user_info_unauthorized,
+            self.test_get_user_info_invalid_token,
+            self.test_auth_metrics,
             self.test_owner_creates_parking,
             self.test_owner_creates_second_parking,
             self.test_driver_searches_parking_by_city,
@@ -903,6 +1420,15 @@ class TestRunner:
             self.test_owner_deletes_own_parking,
             self.test_driver_cannot_delete_parking,
             self.test_owner_cannot_delete_other_owner_parking,
+            self.test_change_password,
+            self.test_change_password_wrong_old_password,
+            self.test_change_password_invalid_user,
+            self.test_change_password_missing_fields,
+            self.test_register_admin_rejected,
+            self.test_create_admin_user,
+            self.test_admin_login,
+            self.test_admin_user_get_info,
+            self.test_admin_user_without_telegram_id,
         ]
         
         for test in tests:

@@ -112,10 +112,14 @@ func init() {
               ],
               "properties": {
                 "date_from": {
-                  "type": "string"
+                  "type": "string",
+                  "format": "date-time",
+                  "example": "2024-12-31T10:00:00Z"
                 },
                 "date_to": {
-                  "type": "string"
+                  "type": "string",
+                  "format": "date-time",
+                  "example": "2024-12-31T18:00:00Z"
                 },
                 "parking_place_id": {
                   "type": "integer",
@@ -337,13 +341,13 @@ func init() {
         },
         "date_from": {
           "type": "string",
-          "pattern": "^\\d{2}-\\d{2}-\\d{4}$",
-          "example": "31-12-2024"
+          "format": "date-time",
+          "example": "2024-12-31T10:00:00Z"
         },
         "date_to": {
           "type": "string",
-          "pattern": "^\\d{2}-\\d{2}-\\d{4}$",
-          "example": "31-12-2025"
+          "format": "date-time",
+          "example": "2024-12-31T18:00:00Z"
         },
         "full_cost": {
           "type": "integer",
@@ -559,10 +563,14 @@ func init() {
               ],
               "properties": {
                 "date_from": {
-                  "type": "string"
+                  "type": "string",
+                  "format": "date-time",
+                  "example": "2024-12-31T10:00:00Z"
                 },
                 "date_to": {
-                  "type": "string"
+                  "type": "string",
+                  "format": "date-time",
+                  "example": "2024-12-31T18:00:00Z"
                 },
                 "parking_place_id": {
                   "type": "integer",
@@ -784,13 +792,13 @@ func init() {
         },
         "date_from": {
           "type": "string",
-          "pattern": "^\\d{2}-\\d{2}-\\d{4}$",
-          "example": "31-12-2024"
+          "format": "date-time",
+          "example": "2024-12-31T10:00:00Z"
         },
         "date_to": {
           "type": "string",
-          "pattern": "^\\d{2}-\\d{2}-\\d{4}$",
-          "example": "31-12-2025"
+          "format": "date-time",
+          "example": "2024-12-31T18:00:00Z"
         },
         "full_cost": {
           "type": "integer",

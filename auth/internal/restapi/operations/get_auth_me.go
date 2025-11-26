@@ -57,7 +57,6 @@ func (o *GetAuthMe) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }
@@ -98,7 +97,7 @@ func (o *GetAuthMeOKBody) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var getAuthMeOKBodyTypeRolePropEnum []any
+var getAuthMeOKBodyTypeRolePropEnum []interface{}
 
 func init() {
 	var res []string

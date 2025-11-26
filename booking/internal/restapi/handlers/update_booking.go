@@ -74,10 +74,10 @@ func (handler *Handler) UpdateBooking(params driver.UpdateBookingParams, user *m
 			parkingPlaceID = *params.Object.ParkingPlaceID
 		}
 		if params.Object.DateFrom != nil {
-			dateFrom = *params.Object.DateFrom
+			dateFrom = params.Object.DateFrom.String()
 		}
 		if params.Object.DateTo != nil {
-			dateTo = *params.Object.DateTo
+			dateTo = params.Object.DateTo.String()
 		}
 		slog.Error(
 			"failed update booking",
@@ -171,10 +171,10 @@ func (handler *Handler) UpdateBooking(params driver.UpdateBookingParams, user *m
 		parkingPlaceID = *params.Object.ParkingPlaceID
 	}
 	if params.Object.DateFrom != nil {
-		dateFrom = *params.Object.DateFrom
+		dateFrom = params.Object.DateFrom.String()
 	}
 	if params.Object.DateTo != nil {
-		dateTo = *params.Object.DateTo
+		dateTo = params.Object.DateTo.String()
 	}
 	slog.Info(
 		"update booking",

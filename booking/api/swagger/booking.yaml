@@ -175,8 +175,12 @@ paths:
                 format: "int64"
               date_from:
                 type: "string"
+                format: "date-time"
+                example: "2024-12-31T10:00:00Z"
               date_to:
                 type: "string"
+                format: "date-time"
+                example: "2024-12-31T18:00:00Z"
       responses:
         200:
           description: "successful operation"
@@ -226,12 +230,12 @@ definitions:
         format: "int64"
       date_from:
         type: "string"
-        pattern: ^\d{2}-\d{2}-\d{4}$
-        example: "31-12-2024"
+        format: "date-time"
+        example: "2024-12-31T10:00:00Z"
       date_to:
         type: "string"
-        pattern: ^\d{2}-\d{2}-\d{4}$
-        example: "31-12-2025"
+        format: "date-time"
+        example: "2024-12-31T18:00:00Z"
       parking_place_id:
         type: "integer"
         format: "int64"

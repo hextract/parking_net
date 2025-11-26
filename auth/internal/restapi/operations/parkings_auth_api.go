@@ -43,32 +43,18 @@ func NewParkingsAuthAPI(spec *loads.Document) *ParkingsAuthAPI {
 		JSONProducer: runtime.JSONProducer(),
 
 		GetAuthMeHandler: GetAuthMeHandlerFunc(func(params GetAuthMeParams) middleware.Responder {
-			_ = params
-
 			return middleware.NotImplemented("operation GetAuthMe has not yet been implemented")
 		}),
-
 		GetAuthMetricsHandler: GetAuthMetricsHandlerFunc(func(params GetAuthMetricsParams) middleware.Responder {
-			_ = params
-
 			return middleware.NotImplemented("operation GetAuthMetrics has not yet been implemented")
 		}),
-
 		PostAuthChangePasswordHandler: PostAuthChangePasswordHandlerFunc(func(params PostAuthChangePasswordParams) middleware.Responder {
-			_ = params
-
 			return middleware.NotImplemented("operation PostAuthChangePassword has not yet been implemented")
 		}),
-
 		PostAuthLoginHandler: PostAuthLoginHandlerFunc(func(params PostAuthLoginParams) middleware.Responder {
-			_ = params
-
 			return middleware.NotImplemented("operation PostAuthLogin has not yet been implemented")
 		}),
-
 		PostAuthRegisterHandler: PostAuthRegisterHandlerFunc(func(params PostAuthRegisterParams) middleware.Responder {
-			_ = params
-
 			return middleware.NotImplemented("operation PostAuthRegister has not yet been implemented")
 		}),
 	}
@@ -134,7 +120,7 @@ type ParkingsAuthAPI struct {
 	CommandLineOptionsGroups []swag.CommandLineOptionsGroup
 
 	// User defined logger function.
-	Logger func(string, ...any)
+	Logger func(string, ...interface{})
 }
 
 // UseRedoc for documentation at /docs
@@ -233,12 +219,12 @@ func (o *ParkingsAuthAPI) Authorizer() runtime.Authorizer {
 }
 
 // ConsumersFor gets the consumers for the specified media types.
-//
 // MIME type parameters are ignored here.
 func (o *ParkingsAuthAPI) ConsumersFor(mediaTypes []string) map[string]runtime.Consumer {
 	result := make(map[string]runtime.Consumer, len(mediaTypes))
 	for _, mt := range mediaTypes {
-		if mt == "application/json" {
+		switch mt {
+		case "application/json":
 			result["application/json"] = o.JSONConsumer
 		}
 
@@ -246,17 +232,16 @@ func (o *ParkingsAuthAPI) ConsumersFor(mediaTypes []string) map[string]runtime.C
 			result[mt] = c
 		}
 	}
-
 	return result
 }
 
 // ProducersFor gets the producers for the specified media types.
-//
 // MIME type parameters are ignored here.
 func (o *ParkingsAuthAPI) ProducersFor(mediaTypes []string) map[string]runtime.Producer {
 	result := make(map[string]runtime.Producer, len(mediaTypes))
 	for _, mt := range mediaTypes {
-		if mt == "application/json" {
+		switch mt {
+		case "application/json":
 			result["application/json"] = o.JSONProducer
 		}
 
@@ -264,7 +249,6 @@ func (o *ParkingsAuthAPI) ProducersFor(mediaTypes []string) map[string]runtime.P
 			result[mt] = p
 		}
 	}
-
 	return result
 }
 

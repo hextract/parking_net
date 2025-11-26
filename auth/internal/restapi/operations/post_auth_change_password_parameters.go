@@ -6,7 +6,6 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -29,6 +28,7 @@ func NewPostAuthChangePasswordParams() PostAuthChangePasswordParams {
 //
 // swagger:parameters PostAuthChangePassword
 type PostAuthChangePasswordParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -49,12 +49,10 @@ func (o *PostAuthChangePasswordParams) BindRequest(r *http.Request, route *middl
 	o.HTTPRequest = r
 
 	if runtime.HasBody(r) {
-		defer func() {
-			_ = r.Body.Close()
-		}()
+		defer r.Body.Close()
 		var body PostAuthChangePasswordBody
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if stderrors.Is(err, io.EOF) {
+			if err == io.EOF {
 				res = append(res, errors.Required("body", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("body", "body", "", err))

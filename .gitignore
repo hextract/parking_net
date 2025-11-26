@@ -1,2 +1,21 @@
 **/.idea/
 .env
+
+# Compiled binaries and executables
+**/main
+**/*.exe
+**/*.bin
+**/*.so
+**/*.dylib
+**/*.dll
+**/*.a
+
+# Go build artifacts
+**/vendor/
+*.test
+*.out
+*.prof
+
+# OS-specific files
+.DS_Store
+Thumbs.db
