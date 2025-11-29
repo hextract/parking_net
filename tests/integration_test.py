@@ -159,7 +159,7 @@ class TestRunner:
         data = {
             "email": f"owner_{self.timestamp}@test.com",
             "login": f"owner_{self.timestamp}",
-            "password": "password123",
+            "password": "Password123",
             "role": "owner",
             "telegram_id": 123123123
         }
@@ -182,7 +182,7 @@ class TestRunner:
         data = {
             "email": f"driver_{self.timestamp}@test.com",
             "login": f"driver_{self.timestamp}",
-            "password": "password123",
+            "password": "Password123",
             "role": "driver",
             "telegram_id": 615711092
         }
@@ -204,7 +204,7 @@ class TestRunner:
         self.log("Test 3: Login Owner")
         data = {
             "login": f"owner_{self.timestamp}",
-            "password": "password123"
+            "password": "Password123"
         }
         resp = self.auth_client.post("/auth/login", data)
         if not self.assert_status(resp, 200, "Login Owner"):
@@ -224,7 +224,7 @@ class TestRunner:
         self.log("Test 4: Login Driver")
         data = {
             "login": f"driver_{self.timestamp}",
-            "password": "password123"
+            "password": "Password123"
         }
         resp = self.auth_client.post("/auth/login", data)
         if not self.assert_status(resp, 200, "Login Driver"):
@@ -964,8 +964,8 @@ class TestRunner:
             return True
         
         login = f"driver_{self.timestamp}"
-        old_password = "password123"
-        new_password = "newpassword456"
+        old_password = "Password123"
+        new_password = "Newpassword456"
         
         data = {
             "login": login,
@@ -1009,15 +1009,15 @@ class TestRunner:
         
         data = {
             "login": login,
-            "oldPassword": "wrongpassword",
-            "newPassword": "newpassword789"
+            "oldPassword": "Wrongpassword",
+            "newPassword": "Newpassword789"
         }
         
         resp = self.auth_client.post("/auth/change-password", data)
         if not self.assert_status(resp, 401, "Change Password Wrong Old Password"):
             return False
         
-        resp = self.auth_client.post("/auth/login", {"login": login, "password": "newpassword456"})
+        resp = self.auth_client.post("/auth/login", {"login": login, "password": "Newpassword456"})
         if not self.assert_status(resp, 200, "Login With Current Password After Failed Change"):
             return False
         
@@ -1045,7 +1045,7 @@ class TestRunner:
         self.log("Test 34: Change Password With Missing Fields (400/422)")
         data = {
             "login": f"driver_{self.timestamp}",
-            "oldPassword": "password123"
+            "oldPassword": "Password123"
         }
         
         resp = self.auth_client.post("/auth/change-password", data)
@@ -1062,7 +1062,7 @@ class TestRunner:
         data = {
             "email": f"admin_{self.timestamp}@test.com",
             "login": f"admin_{self.timestamp}",
-            "password": "adminpass123",
+            "password": "Adminpass123",
             "role": "admin",
             "telegram_id": 999999999
         }
@@ -1143,7 +1143,7 @@ class TestRunner:
         self.log("Test 38: Create Admin User via Keycloak API")
         admin_login = f"admin_{self.timestamp}"
         admin_email = f"admin_{self.timestamp}@test.com"
-        admin_password = "adminpass123"
+        admin_password = "Adminpass123"
         
         success = self.create_admin_user_via_keycloak(admin_login, admin_email, admin_password)
         if not success:
@@ -1166,7 +1166,7 @@ class TestRunner:
             return True
         
         admin_login = f"admin_{self.timestamp}"
-        admin_password = "adminpass123"
+        admin_password = "Adminpass123"
         
         data = {
             "login": admin_login,

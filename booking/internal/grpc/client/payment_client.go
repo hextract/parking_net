@@ -3,10 +3,12 @@ package client
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/h4x4d/parking_net/booking/internal/grpc/gen"
 	"github.com/h4x4d/parking_net/booking/internal/grpc/utils"
 	"go.opentelemetry.io/otel"
+	"google.golang.org/grpc/metadata"
 )
 
 type PaymentClient struct{}
@@ -25,6 +27,11 @@ func (pc *PaymentClient) ProcessTransaction(ctx context.Context, bookingID int64
 	tracer := otel.Tracer("Booking")
 	childCtx, span := tracer.Start(ctx, "booking request process transaction")
 	defer span.End()
+
+	internalToken := os.Getenv("INTERNAL_SERVICE_TOKEN")
+	if internalToken != "" {
+		childCtx = metadata.AppendToOutgoingContext(childCtx, "authorization", "Bearer "+internalToken)
+	}
 
 	client := gen.NewPaymentClient(conn)
 
@@ -57,6 +64,11 @@ func (pc *PaymentClient) ProcessRefund(ctx context.Context, bookingID int64, dri
 	tracer := otel.Tracer("Booking")
 	childCtx, span := tracer.Start(ctx, "booking request process refund")
 	defer span.End()
+
+	internalToken := os.Getenv("INTERNAL_SERVICE_TOKEN")
+	if internalToken != "" {
+		childCtx = metadata.AppendToOutgoingContext(childCtx, "authorization", "Bearer "+internalToken)
+	}
 
 	client := gen.NewPaymentClient(conn)
 

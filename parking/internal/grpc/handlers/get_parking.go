@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/h4x4d/parking_net/parking/internal/database_service"
 	"github.com/h4x4d/parking_net/parking/internal/grpc/gen"
@@ -40,13 +41,21 @@ func Register(gRPCServer *grpc.Server) {
 func (serverApi *GRPCServer) GetParkingPlace(
 	ctx context.Context, in *gen.ParkingPlaceRequest) (*gen.ParkingPlaceResponse, error) {
 
+	if err := serverApi.validateInternalRequest(ctx); err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "authentication failed")
+	}
+
+	if in.Id <= 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid parking place ID")
+	}
+
 	tracer := otel.Tracer("Parking")
 	md, _ := metadata.FromIncomingContext(ctx)
 	if len(md.Get("x-trace-id")) > 0 {
 		traceIdString := md.Get("x-trace-id")[0]
 		traceId, err := trace.TraceIDFromHex(traceIdString)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.InvalidArgument, "invalid trace ID")
 		}
 		spanContext := trace.NewSpanContext(trace.SpanContextConfig{
 			TraceID: traceId,
@@ -60,10 +69,10 @@ func (serverApi *GRPCServer) GetParkingPlace(
 
 	parkingPlace, err := serverApi.Database.GetById(in.Id)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "internal error: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to get parking place")
 	}
 	if parkingPlace == nil {
-		return nil, status.Errorf(codes.NotFound, "parking place %d not found", in.Id)
+		return nil, status.Errorf(codes.NotFound, "parking place not found")
 	}
 
 	name := ""
@@ -89,4 +98,33 @@ func (serverApi *GRPCServer) GetParkingPlace(
 		Capacity:    parkingPlace.Capacity,
 		OwnerId:     parkingPlace.OwnerID,
 	}, nil
+}
+
+func (s *GRPCServer) validateInternalRequest(ctx context.Context) error {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return fmt.Errorf("no metadata provided")
+	}
+
+	internalToken := os.Getenv("INTERNAL_SERVICE_TOKEN")
+	if internalToken == "" {
+		return nil
+	}
+
+	authHeaders := md.Get("authorization")
+	if len(authHeaders) == 0 {
+		return fmt.Errorf("no authorization header")
+	}
+
+	authHeader := strings.TrimSpace(authHeaders[0])
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		return fmt.Errorf("invalid authorization format")
+	}
+
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	if token != internalToken {
+		return fmt.Errorf("invalid token")
+	}
+
+	return nil
 }

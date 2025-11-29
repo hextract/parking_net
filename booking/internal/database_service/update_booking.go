@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/h4x4d/parking_net/booking/internal/grpc/client"
 	"github.com/h4x4d/parking_net/booking/internal/models"
+	"github.com/h4x4d/parking_net/booking/internal/utils"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.opentelemetry.io/otel"
 )
@@ -37,18 +38,37 @@ func (ds *DatabaseService) Update(ctx context.Context, bookingId int64, booking 
 		values = append(values, *booking.ParkingPlaceID)
 	}
 	if booking.FullCost == 0 {
+		if booking.ParkingPlaceID == nil {
+			return nil, fmt.Errorf("parking place ID is required")
+		}
+		if err := utils.ValidateParkingPlaceID(booking.ParkingPlaceID); err != nil {
+			return nil, fmt.Errorf("invalid parking place ID")
+		}
+
 		parkingPlace, err := client.GetParkingPlaceById(ctx, booking.ParkingPlaceID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get parking place")
+		}
+
+		if booking.DateFrom == nil || booking.DateTo == nil {
+			return nil, fmt.Errorf("dates cannot be nil")
 		}
 
 		dFrom := time.Time(*booking.DateFrom)
 		dTo := time.Time(*booking.DateTo)
-		if dFrom.After(dTo) || dFrom.Equal(dTo) {
-			return nil, fmt.Errorf("date_from must be before date_to")
+		if err := utils.ValidateDateRange(&dFrom, &dTo); err != nil {
+			return nil, err
 		}
+
 		hours := dTo.Sub(dFrom).Hours()
 		booking.FullCost = int64(float64(parkingPlace.HourlyRate) * hours)
+		if err := utils.ValidateFullCost(booking.FullCost); err != nil {
+			return nil, fmt.Errorf("calculated cost exceeds maximum")
+		}
+	} else {
+		if err := utils.ValidateFullCost(booking.FullCost); err != nil {
+			return nil, fmt.Errorf("invalid full cost")
+		}
 	}
 
 	settings = append(settings, fmt.Sprintf("full_cost = $%d", len(values)+1))

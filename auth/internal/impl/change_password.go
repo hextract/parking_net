@@ -17,12 +17,12 @@ func ChangePasswordUser(ctx context.Context, clt *client.Client, fields operatio
 	_, err := clt.Client.Login(ctx, clt.Config.Client, clt.Config.ClientSecret,
 		clt.Config.Realm, *fields.Login, *fields.OldPassword)
 	if err != nil {
-		return nil, fmt.Errorf("invalid old password: %w", err)
+		return nil, fmt.Errorf("invalid old password")
 	}
 
 	token, err := clt.GetAdminToken(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get admin token: %w", err)
+		return nil, fmt.Errorf("failed to get admin token")
 	}
 
 	params := gocloak.GetUsersParams{
@@ -30,7 +30,7 @@ func ChangePasswordUser(ctx context.Context, clt *client.Client, fields operatio
 	}
 	users, err := clt.Client.GetUsers(ctx, token.AccessToken, clt.Config.Realm, params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user: %w", err)
+		return nil, fmt.Errorf("failed to get user")
 	}
 
 	if len(users) == 0 {
@@ -44,13 +44,13 @@ func ChangePasswordUser(ctx context.Context, clt *client.Client, fields operatio
 	err = clt.Client.SetPassword(ctx, token.AccessToken, *users[0].ID,
 		clt.Config.Realm, *fields.NewPassword, false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to set new password: %w", err)
+		return nil, fmt.Errorf("failed to set new password")
 	}
 
 	userToken, err := clt.Client.Login(ctx, clt.Config.Client, clt.Config.ClientSecret,
 		clt.Config.Realm, *fields.Login, *fields.NewPassword)
 	if err != nil {
-		return nil, fmt.Errorf("failed to login with new password: %w", err)
+		return nil, fmt.Errorf("failed to login with new password")
 	}
 
 	return &userToken.AccessToken, nil

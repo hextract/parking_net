@@ -2,10 +2,13 @@ package client
 
 import (
 	"context"
+	"os"
+
 	"github.com/h4x4d/parking_net/booking/internal/grpc/gen"
 	"github.com/h4x4d/parking_net/booking/internal/grpc/utils"
 	"github.com/h4x4d/parking_net/booking/internal/models"
 	"go.opentelemetry.io/otel"
+	"google.golang.org/grpc/metadata"
 )
 
 func GetParkingPlaceById(ctx context.Context, parkingPlaceId *int64) (*models.ParkingPlace, error) {
@@ -18,6 +21,11 @@ func GetParkingPlaceById(ctx context.Context, parkingPlaceId *int64) (*models.Pa
 	tracer := otel.Tracer("Booking")
 	childCtx, span := tracer.Start(ctx, "booking request get parking place")
 	defer span.End()
+
+	internalToken := os.Getenv("INTERNAL_SERVICE_TOKEN")
+	if internalToken != "" {
+		childCtx = metadata.AppendToOutgoingContext(childCtx, "authorization", "Bearer "+internalToken)
+	}
 
 	client := gen.NewParkingClient(conn)
 

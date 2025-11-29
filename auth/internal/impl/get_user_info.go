@@ -20,18 +20,18 @@ func GetUserInfo(ctx context.Context, clt *client.Client, params operations.GetA
 	// Use CheckToken to get user info
 	user, err := clt.CheckToken(ctx, token)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user info: %w", err)
+		return nil, fmt.Errorf("failed to get user info")
 	}
 
 	// Get user details from Keycloak
 	adminToken, err := clt.GetAdminToken(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get admin token: %w", err)
+		return nil, fmt.Errorf("failed to get admin token")
 	}
 
 	keycloakUser, err := clt.Client.GetUserByID(ctx, adminToken.AccessToken, clt.Config.Realm, user.UserID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user details: %w", err)
+		return nil, fmt.Errorf("failed to get user details")
 	}
 
 	login := ""

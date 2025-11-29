@@ -70,10 +70,10 @@ func (handler *Handler) CreateBooking(params driver.CreateBookingParams, user *m
 					slog.Int64("parking-place-id", *params.Object.ParkingPlaceID),
 				),
 				slog.Int("status_code", http.StatusInternalServerError),
-				slog.String("error", errCreate.Error()),
+				slog.String("error", "failed to create booking"),
 			)
 
-			return utils.HandleInternalError(errCreate)
+			return utils.HandleInternalError(fmt.Errorf("failed to create booking"))
 		}
 
 		booking, errGet := handler.Database.GetByID(*bookingId)

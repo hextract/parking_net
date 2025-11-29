@@ -9,6 +9,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v13"
 	"github.com/h4x4d/parking_net/auth/internal/restapi/operations"
+	"github.com/h4x4d/parking_net/auth/internal/utils"
 	"github.com/h4x4d/parking_net/pkg/client"
 )
 
@@ -16,6 +17,26 @@ func CreateUser(ctx context.Context, clt *client.Client, fields operations.PostA
 	if fields.Login == nil || fields.Email == nil || fields.Password == nil ||
 		fields.Role == nil || fields.TelegramID == nil {
 		return nil, fmt.Errorf("all fields are required")
+	}
+
+	if err := utils.ValidateLogin(*fields.Login); err != nil {
+		return nil, fmt.Errorf("invalid login: %v", err)
+	}
+
+	if err := utils.ValidateEmail(*fields.Email); err != nil {
+		return nil, fmt.Errorf("invalid email: %v", err)
+	}
+
+	if err := utils.ValidatePassword(*fields.Password); err != nil {
+		return nil, fmt.Errorf("invalid password: %v", err)
+	}
+
+	if err := utils.ValidateRole(*fields.Role); err != nil {
+		return nil, fmt.Errorf("invalid role: %v", err)
+	}
+
+	if err := utils.ValidateTelegramID(*fields.TelegramID); err != nil {
+		return nil, fmt.Errorf("invalid telegram ID: %v", err)
 	}
 
 	user := gocloak.User{
@@ -30,7 +51,7 @@ func CreateUser(ctx context.Context, clt *client.Client, fields operations.PostA
 
 	token, err := clt.GetAdminToken(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get admin token: %w", err)
+		return nil, fmt.Errorf("failed to get admin token")
 	}
 
 	userId, err := clt.Client.CreateUser(ctx, token.AccessToken, clt.Config.Realm, user)
@@ -38,7 +59,7 @@ func CreateUser(ctx context.Context, clt *client.Client, fields operations.PostA
 		if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "duplicate") {
 			return nil, fmt.Errorf("user already exists")
 		}
-		return nil, fmt.Errorf("failed to create user: %w", err)
+		return nil, fmt.Errorf("failed to create user")
 	}
 
 	groups, err := clt.Client.GetGroups(ctx, token.AccessToken, clt.Config.Realm, gocloak.GetGroupsParams{
@@ -58,12 +79,12 @@ func CreateUser(ctx context.Context, clt *client.Client, fields operations.PostA
 
 	err = clt.Client.SetPassword(ctx, token.AccessToken, userId, clt.Config.Realm, *fields.Password, false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to set password: %w", err)
+		return nil, fmt.Errorf("failed to set password")
 	}
 
 	userToken, err := clt.Client.Login(ctx, clt.Config.Client, clt.Config.ClientSecret, clt.Config.Realm, *fields.Login, *fields.Password)
 	if err != nil {
-		return nil, fmt.Errorf("failed to login after registration: %w", err)
+		return nil, fmt.Errorf("failed to login after registration")
 	}
 
 	return &userToken.AccessToken, nil

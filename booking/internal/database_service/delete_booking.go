@@ -10,7 +10,7 @@ func (ds *DatabaseService) Delete(ctx context.Context, bookingID int64) error {
 	
 	result, err := ds.pool.Exec(ctx, query, bookingID)
 	if err != nil {
-		return fmt.Errorf("failed to delete booking: %w", err)
+		return fmt.Errorf("failed to delete booking")
 	}
 	
 	if result.RowsAffected() == 0 {

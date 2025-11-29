@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/h4x4d/parking_net/parking/internal/repository"
+	"github.com/h4x4d/parking_net/parking/internal/utils"
 	"github.com/h4x4d/parking_net/pkg/domain"
 	"github.com/h4x4d/parking_net/pkg/errors"
 )
@@ -29,7 +30,7 @@ func (s *ParkingService) CreateParking(ctx context.Context, parking *domain.Park
 
 	created, err := s.repo.Create(ctx, parking)
 	if err != nil {
-		return nil, errors.Internal(err)
+		return nil, errors.Internal(utils.SanitizeError(err))
 	}
 
 	return created, nil
@@ -38,7 +39,7 @@ func (s *ParkingService) CreateParking(ctx context.Context, parking *domain.Park
 func (s *ParkingService) GetParkingByID(ctx context.Context, id int64) (*domain.ParkingPlace, *errors.AppError) {
 	parking, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		return nil, errors.Internal(err)
+		return nil, errors.Internal(utils.SanitizeError(err))
 	}
 
 	if parking == nil {
@@ -51,7 +52,7 @@ func (s *ParkingService) GetParkingByID(ctx context.Context, id int64) (*domain.
 func (s *ParkingService) GetParkings(ctx context.Context, filters repository.ParkingFilters) ([]*domain.ParkingPlace, *errors.AppError) {
 	parkings, err := s.repo.GetAll(ctx, filters)
 	if err != nil {
-		return nil, errors.Internal(err)
+		return nil, errors.Internal(utils.SanitizeError(err))
 	}
 
 	return parkings, nil
@@ -89,7 +90,7 @@ func (s *ParkingService) UpdateParking(ctx context.Context, id int64, parking *d
 	}
 
 	if err := s.repo.Update(ctx, parking); err != nil {
-		return errors.Internal(err)
+		return errors.Internal(utils.SanitizeError(err))
 	}
 
 	return nil
@@ -102,7 +103,7 @@ func (s *ParkingService) DeleteParking(ctx context.Context, id int64, user *doma
 
 	existing, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		return errors.Internal(err)
+		return errors.Internal(utils.SanitizeError(err))
 	}
 
 	if existing == nil {
@@ -119,7 +120,7 @@ func (s *ParkingService) DeleteParking(ctx context.Context, id int64, user *doma
 	}
 
 	if err := s.repo.Delete(ctx, id, ownerID); err != nil {
-		return errors.Internal(err)
+		return errors.Internal(utils.SanitizeError(err))
 	}
 
 	return nil

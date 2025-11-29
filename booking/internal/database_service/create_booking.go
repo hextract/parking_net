@@ -6,6 +6,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/h4x4d/parking_net/booking/internal/grpc/client"
 	"github.com/h4x4d/parking_net/booking/internal/models"
+	"github.com/h4x4d/parking_net/booking/internal/utils"
 	"go.opentelemetry.io/otel"
 	"strings"
 	"time"
@@ -57,22 +58,38 @@ func (ds *DatabaseService) CreateBooking(booking *models.Booking) (*int64, error
 }
 
 func (ds *DatabaseService) Create(ctx context.Context, dateFrom *strfmt.DateTime, dateTo *strfmt.DateTime, parkingPlaceID *int64, userID string) (*int64, error) {
+	if err := utils.ValidateUserID(userID); err != nil {
+		return nil, fmt.Errorf("invalid user ID")
+	}
+
+	if err := utils.ValidateParkingPlaceID(parkingPlaceID); err != nil {
+		return nil, fmt.Errorf("invalid parking place ID")
+	}
+
+	if dateFrom == nil || dateTo == nil {
+		return nil, fmt.Errorf("dates cannot be nil")
+	}
+
+	dFrom := time.Time(*dateFrom)
+	dTo := time.Time(*dateTo)
+	if err := utils.ValidateDateRange(&dFrom, &dTo); err != nil {
+		return nil, err
+	}
+
 	tracer := otel.Tracer("Booking")
 	childCtx, span := tracer.Start(ctx, "create booking in database")
 	defer span.End()
 
 	parkingPlace, err := client.GetParkingPlaceById(childCtx, parkingPlaceID)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get parking place")
 	}
-	dFrom := time.Time(*dateFrom)
-	dTo := time.Time(*dateTo)
-	if dFrom.After(dTo) || dFrom.Equal(dTo) {
-		return nil, fmt.Errorf("date_from must be before date_to")
-	}
+
 	hours := dTo.Sub(dFrom).Hours()
 	cost := int64(float64(parkingPlace.HourlyRate) * hours)
+	if err := utils.ValidateFullCost(cost); err != nil {
+		return nil, fmt.Errorf("calculated cost exceeds maximum")
+	}
 
 	booking := &models.Booking{
 		DateFrom:        dateFrom,

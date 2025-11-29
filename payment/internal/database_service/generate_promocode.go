@@ -7,11 +7,20 @@ import (
 	"errors"
 	"fmt"
 	"github.com/h4x4d/parking_net/payment/internal/models"
+	"github.com/h4x4d/parking_net/payment/internal/utils"
 	"github.com/jackc/pgx/v5"
 	"go.opentelemetry.io/otel"
 )
 
 func (ds *DatabaseService) GeneratePromocode(ctx context.Context, userID string, amount int64) (*models.PromocodeResponse, error) {
+	if err := utils.ValidateUserID(userID); err != nil {
+		return nil, fmt.Errorf("invalid user ID")
+	}
+
+	if err := utils.ValidateAmount(amount); err != nil {
+		return nil, fmt.Errorf("invalid amount")
+	}
+
 	tracer := otel.Tracer("Payment")
 	ctx, span := tracer.Start(ctx, "generate_promocode")
 	defer span.End()
@@ -42,7 +51,11 @@ func (ds *DatabaseService) GeneratePromocode(ctx context.Context, userID string,
 		return nil, fmt.Errorf("insufficient funds")
 	}
 
-	newBalance := balance - amount
+	newBalance, err := utils.SafeSubtractBalance(balance, amount)
+	if err != nil {
+		return nil, fmt.Errorf("insufficient funds")
+	}
+
 	_, err = tx.Exec(ctx, "UPDATE balances SET balance = $1 WHERE user_id = $2", newBalance, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update balance: %w", err)

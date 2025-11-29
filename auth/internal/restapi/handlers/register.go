@@ -44,6 +44,8 @@ func (h *Handler) RegisterHandler(api operations.PostAuthRegisterParams) middlew
 		errorMsg := "Failed to register user"
 		if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "duplicate") {
 			errorMsg = "User already exists"
+		} else if strings.Contains(err.Error(), "invalid") {
+			errorMsg = err.Error()
 		}
 
 		slog.Error(
@@ -56,7 +58,7 @@ func (h *Handler) RegisterHandler(api operations.PostAuthRegisterParams) middlew
 				slog.Int("telegram-id", int(*api.Body.TelegramID)),
 			),
 			slog.Int("status_code", operations.PostAuthRegisterConflictCode),
-			slog.String("error", err.Error()),
+			slog.String("error", "registration failed"),
 		)
 
 		conflict := int64(operations.PostAuthRegisterConflictCode)

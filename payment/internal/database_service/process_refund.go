@@ -5,11 +5,40 @@ import (
 	"errors"
 	"fmt"
 	"github.com/h4x4d/parking_net/payment/internal/models"
+	"github.com/h4x4d/parking_net/payment/internal/utils"
 	"github.com/jackc/pgx/v5"
 	"go.opentelemetry.io/otel"
 )
 
 func (ds *DatabaseService) ProcessRefund(ctx context.Context, bookingID int64, driverID string, ownerID string, amount int64) (*models.TransactionResponse, error) {
+	if err := utils.ValidateAmount(amount); err != nil {
+		return &models.TransactionResponse{
+			Status:  "failed",
+			Message: "invalid amount",
+		}, nil
+	}
+
+	if err := utils.ValidateUserID(driverID); err != nil {
+		return &models.TransactionResponse{
+			Status:  "failed",
+			Message: "invalid driver ID",
+		}, nil
+	}
+
+	if err := utils.ValidateUserID(ownerID); err != nil {
+		return &models.TransactionResponse{
+			Status:  "failed",
+			Message: "invalid owner ID",
+		}, nil
+	}
+
+	if err := utils.ValidateBookingID(bookingID); err != nil {
+		return &models.TransactionResponse{
+			Status:  "failed",
+			Message: "invalid booking ID",
+		}, nil
+	}
+
 	tracer := otel.Tracer("Payment")
 	ctx, span := tracer.Start(ctx, "process_refund")
 	defer span.End()
@@ -50,8 +79,21 @@ func (ds *DatabaseService) ProcessRefund(ctx context.Context, bookingID int64, d
 		}
 	}
 
-	newOwnerBalance := ownerBalance - amount
-	newDriverBalance := driverBalance + amount
+	newOwnerBalance, err := utils.SafeSubtractBalance(ownerBalance, amount)
+	if err != nil {
+		return &models.TransactionResponse{
+			Status:  "failed",
+			Message: err.Error(),
+		}, nil
+	}
+
+	newDriverBalance, err := utils.SafeAddBalance(driverBalance, amount)
+	if err != nil {
+		return &models.TransactionResponse{
+			Status:  "failed",
+			Message: "refund failed",
+		}, nil
+	}
 
 	_, err = tx.Exec(ctx, "UPDATE balances SET balance = $1 WHERE user_id = $2", newOwnerBalance, ownerID)
 	if err != nil {
