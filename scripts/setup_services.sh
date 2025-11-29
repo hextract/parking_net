@@ -27,6 +27,7 @@ echo "Verifying database tables..."
 PARKING_DB="${PARKING_DB_NAME:-parking_db}"
 BOOKING_DB="${BOOKING_DB_NAME:-booking_db}"
 PAYMENT_DB="${PAYMENT_DB_NAME:-payment_db}"
+TELEGRAM_DB="${TELEGRAM_DB_NAME:-telegram_db}"
 
 if ! docker exec "$DB_CONTAINER" psql -U "${POSTGRES_USER:-postgres}" -d "$PARKING_DB" -c "\dt" 2>/dev/null | grep -q "parking_places"; then
     echo "Creating parking_places table..."
@@ -44,6 +45,12 @@ if ! docker exec "$DB_CONTAINER" psql -U "${POSTGRES_USER:-postgres}" -d "$PAYME
     echo "Creating payment tables..."
     docker exec "$DB_CONTAINER" psql -U "${POSTGRES_USER:-postgres}" -d "$PAYMENT_DB" \
         -f /docker-entrypoint-initdb.d/init_sql/init_payment.sql >/dev/null 2>&1 || true
+fi
+
+if ! docker exec "$DB_CONTAINER" psql -U "${POSTGRES_USER:-postgres}" -d "$TELEGRAM_DB" -c "\dt" 2>/dev/null | grep -q "telegram"; then
+    echo "Creating telegram table..."
+    docker exec "$DB_CONTAINER" psql -U "${POSTGRES_USER:-postgres}" -d "$TELEGRAM_DB" \
+        -f /docker-entrypoint-initdb.d/init_sql/init_telegram.sql >/dev/null 2>&1 || true
 fi
 
 echo "Waiting for Keycloak to be ready..."

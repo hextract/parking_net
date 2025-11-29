@@ -14,7 +14,7 @@ type Service struct {
 	authUrl    string
 	database_service.DatabaseService
 	client.Client
-	client http.Client
+	httpClient http.Client
 }
 
 func NewService() (*Service, error) {
@@ -28,7 +28,7 @@ func NewService() (*Service, error) {
 		return nil, errDatabase
 	}
 	service.DatabaseService = *database_pointer
-	service.client = http.Client{}
+	service.httpClient = http.Client{}
 
 	tokenClient, errorClient := client.NewClient()
 	if errorClient != nil {

@@ -24,8 +24,15 @@ build: ## Start all services (setup runs automatically)
 down: ## Stop all services
 	docker-compose down
 
-restart: ## Restart all services
-	docker-compose restart
+restart: ## Restart all services (preserves volumes)
+	docker-compose stop telegram || true
+	docker rm -f telegram || true
+	docker-compose up -d --build
+
+rebuild: ## Force rebuild and recreate containers (preserves volumes)
+	docker-compose stop telegram || true
+	docker rm -f telegram || true
+	docker-compose up -d --build --force-recreate
 
 test: ## Run integration tests
 	python3 tests/integration_test.py

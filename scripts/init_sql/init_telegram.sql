@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS telegram
 (
-    telegram_id INT NOT NULL,
+    telegram_id BIGINT NOT NULL PRIMARY KEY,
     token TEXT NOT NULL
 );

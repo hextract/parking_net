@@ -26,7 +26,7 @@ func (s *Service) CreateBooking(booking *models.Booking, user *models.User) (boo
 
 	request.Body = io.NopCloser(bytes.NewBuffer(bookingJson))
 
-	responseCreate, errCreate := s.client.Do(request)
+	responseCreate, errCreate := s.httpClient.Do(request)
 	if errCreate != nil {
 		return false, errCreate
 	}

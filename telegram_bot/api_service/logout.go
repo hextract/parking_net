@@ -6,7 +6,7 @@ import (
 
 func (s *Service) Logout(user *models.User) error {
 	telegramID := user.TelegramID
-	err := s.SetToken(telegramID, nil)
+	err := s.DatabaseService.SetToken(telegramID, &models.ApiToken{Value: ""})
 	if err != nil {
 		return err
 	}

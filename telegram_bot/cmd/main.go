@@ -1,388 +1,321 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"telegram_bot/api_service"
 	"telegram_bot/data_representation"
-	"telegram_bot/stages"
-	"telegram_bot/user_info"
+	"telegram_bot/internal/utils"
+	"telegram_bot/models"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-
-	"errors"
 )
+
+type LoginState struct {
+	WaitingForLogin    bool
+	WaitingForPassword bool
+	Login              string
+	PasswordMessageID  int
+	CreatedAt          time.Time
+}
+
+type LoginStateManager struct {
+	states map[int64]*LoginState
+	mu     sync.RWMutex
+}
+
+func NewLoginStateManager() *LoginStateManager {
+	manager := &LoginStateManager{
+		states: make(map[int64]*LoginState),
+	}
+	go manager.cleanupExpired()
+	return manager
+}
+
+func (m *LoginStateManager) Get(telegramID int64) (*LoginState, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	state, exists := m.states[telegramID]
+	return state, exists
+}
+
+func (m *LoginStateManager) Set(telegramID int64, state *LoginState) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	state.CreatedAt = time.Now()
+	m.states[telegramID] = state
+}
+
+func (m *LoginStateManager) Delete(telegramID int64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.states, telegramID)
+}
+
+func (m *LoginStateManager) cleanupExpired() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		m.mu.Lock()
+		now := time.Now()
+		for id, state := range m.states {
+			if now.Sub(state.CreatedAt) > 10*time.Minute {
+				delete(m.states, id)
+			}
+		}
+		m.mu.Unlock()
+	}
+}
 
 func main() {
 	telegramApiKey := os.Getenv("TELEGRAM_API_KEY")
 	bot, err := tgbotapi.NewBotAPI(telegramApiKey)
 	if err != nil {
 		log.Panic(err)
-		return
 	}
-	bot.Debug = true
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-
 	updates := bot.GetUpdatesChan(u)
-	userInfo := user_info.NewUserInfo()
 
-	apiService, errService := api_service.NewService()
-	if errService != nil {
-		log.Panic(errService)
-		return
+	apiService, err := api_service.NewService()
+	if err != nil {
+		log.Panic(err)
 	}
+
+	ctx := context.Background()
+	loginStateManager := NewLoginStateManager()
 
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Добрый день")
+		chatID := update.Message.Chat.ID
+		telegramID := update.Message.From.ID
 
-		currUser := userInfo.GetUserData(update.Message.From.ID)
+		if err := utils.ValidateTelegramID(int64(telegramID)); err != nil {
+			continue
+		}
+
+		msg := tgbotapi.NewMessage(chatID, "")
 
 		if update.Message.IsCommand() {
-			if update.Message.Command() == "start" {
-				initialStage := stages.NewInitialStage()
-				userInfo.SetUserStage(update.Message.From.ID, initialStage)
-				initialStage.ConfigureMessage(&msg)
+			switch update.Message.Command() {
+			case "start":
+				msg.Text = fmt.Sprintf("Hello! 👋\n\nYour Telegram ID: %d\n\nUse this ID when registering on the website.\n\nAvailable commands:\n/help - show all commands", telegramID)
+
+			case "help":
+				msg.Text = "Available commands:\n\n"
+				msg.Text += "/start - greeting and your Telegram ID\n"
+				msg.Text += "/login - authorize (enter login and password)\n"
+				msg.Text += "/balance - view balance\n"
+				msg.Text += "/bookings - view my bookings (for drivers)\n"
+				msg.Text += "/parkings - view my parking places (for owners)\n"
+				msg.Text += "/help - show this help"
+
+			case "login":
+				if err := utils.ValidateTelegramID(int64(telegramID)); err != nil {
+					msg.Text = "❌ Error: invalid Telegram ID."
+					break
+				}
+				loginStateManager.Set(int64(telegramID), &LoginState{
+					WaitingForLogin: true,
+				})
+				msg.Text = "🔐 Enter your login:"
+
+			case "balance":
+				if err := utils.ValidateTelegramID(int64(telegramID)); err != nil {
+					msg.Text = "❌ Error: invalid Telegram ID."
+					break
+				}
+				userInfo, err := apiService.GetUserByTelegramID(ctx, int64(telegramID))
+				if err != nil {
+					msg.Text = "❌ User not found. Please register on the website using your Telegram ID: " + strconv.FormatInt(int64(telegramID), 10)
+				} else {
+					if userInfo.Token == "" {
+						msg.Text = "❌ Authorization required. Use the /login command to sign in."
+					} else {
+						balance, err := apiService.GetBalance(userInfo.Token)
+						if err != nil {
+							msg.Text = "❌ Error getting balance."
+						} else {
+							balanceValue := int64(0)
+							if balance.Balance != nil {
+								balanceValue = *balance.Balance
+							}
+							currency := "USD"
+							if balance.Currency != nil {
+								currency = *balance.Currency
+							}
+							msg.Text = fmt.Sprintf("💰 Your balance: %.2f %s", float64(balanceValue)/100.0, currency)
+						}
+					}
+				}
+
+			case "bookings":
+				if err := utils.ValidateTelegramID(int64(telegramID)); err != nil {
+					msg.Text = "❌ Error: invalid Telegram ID."
+					break
+				}
+				userInfo, err := apiService.GetUserByTelegramID(ctx, int64(telegramID))
+				if err != nil {
+					msg.Text = "❌ User not found. Please register on the website using your Telegram ID: " + strconv.FormatInt(int64(telegramID), 10)
+				} else {
+					if userInfo.Role != "driver" {
+						msg.Text = "❌ This command is only available for drivers."
+					} else if userInfo.Token == "" {
+						msg.Text = "❌ Authorization required. Use the /login command to sign in."
+					} else {
+						user := &models.User{
+							UserID:     userInfo.UserID,
+							TelegramID: int64(telegramID),
+						}
+						bookings, err := apiService.GetUserBookings(user)
+						if err != nil {
+							msg.Text = "❌ Error getting bookings."
+						} else {
+							if len(bookings) == 0 {
+								msg.Text = "📋 You have no active bookings."
+							} else {
+								var builder strings.Builder
+								builder.WriteString(fmt.Sprintf("📋 Your bookings (%d):\n\n", len(bookings)))
+								for i, booking := range bookings {
+									if i > 0 {
+										builder.WriteString("\n---\n\n")
+									}
+									bookingText := data_representation.GetBooking(&booking)
+									if err := utils.ValidateMessageLength(builder.String() + bookingText); err != nil {
+										builder.WriteString("... (message too long)")
+										break
+									}
+									builder.WriteString(bookingText)
+								}
+								msg.Text = builder.String()
+							}
+						}
+					}
+				}
+
+			case "parkings":
+				if err := utils.ValidateTelegramID(int64(telegramID)); err != nil {
+					msg.Text = "❌ Error: invalid Telegram ID."
+					break
+				}
+				userInfo, err := apiService.GetUserByTelegramID(ctx, int64(telegramID))
+				if err != nil {
+					msg.Text = "❌ User not found. Please register on the website using your Telegram ID: " + strconv.FormatInt(int64(telegramID), 10)
+				} else {
+					if userInfo.Role != "owner" {
+						msg.Text = "❌ This command is only available for parking owners."
+					} else if userInfo.Token == "" {
+						msg.Text = "❌ Authorization required. Use the /login command to sign in."
+					} else {
+						user := &models.User{
+							UserID:     userInfo.UserID,
+							TelegramID: int64(telegramID),
+						}
+						parkings, err := apiService.GetUserParkings(user)
+						if err != nil {
+							msg.Text = "❌ Error getting parking places."
+						} else {
+							if len(parkings) == 0 {
+								msg.Text = "🅿️ You have no parking places."
+							} else {
+								var builder strings.Builder
+								builder.WriteString(fmt.Sprintf("🅿️ Your parking places (%d):\n\n", len(parkings)))
+								for i, parking := range parkings {
+									if i > 0 {
+										builder.WriteString("\n---\n\n")
+									}
+									parkingText := data_representation.GetParkingPlace(&parking)
+									if err := utils.ValidateMessageLength(builder.String() + parkingText); err != nil {
+										builder.WriteString("... (message too long)")
+										break
+									}
+									builder.WriteString(parkingText)
+								}
+								msg.Text = builder.String()
+							}
+						}
+					}
+				}
+
+			default:
+				msg.Text = "❌ Unknown command. Use /help for a list of commands."
 			}
 		} else {
-			if userInfo.UserStageExists(update.Message.From.ID) {
-				userStage := userInfo.GetUserStage(update.Message.From.ID)
-				log.Println(userStage)
-
-				if _, resultInitialStage := userStage.(*stages.InitialStage); resultInitialStage {
-					switch update.Message.Text {
-					case "Войти":
-						loginStage := stages.NewLoginStage()
-						userInfo.SetUserStage(update.Message.From.ID, loginStage)
-						loginStage.ConfigureMessage(&msg)
-					case "Зарегистрироваться":
-						registerStage := stages.NewRegisterStage()
-						userInfo.SetUserStage(update.Message.From.ID, registerStage)
-						registerStage.ConfigureMessage(&msg)
-					default:
-						msg.Text = "Не знаю такой команды"
-					}
-				}
-
-				if registerStage, resultRegisterStage := userStage.(*stages.RegisterStage); resultRegisterStage {
-					inputError := registerStage.ComputeInput(userInfo, update.Message.From.ID, update.Message.Text)
-					if inputError != nil {
-						newInitialStage := stages.NewInitialStage()
-						userInfo.SetUserStage(update.Message.From.ID, newInitialStage)
-						newInitialStage.ConfigureMessage(&msg)
-						msg.Text = "Ошибка при вводе данных. " + msg.Text
+			state, inLogin := loginStateManager.Get(int64(telegramID))
+			if inLogin {
+				if state.WaitingForLogin {
+					login := strings.TrimSpace(update.Message.Text)
+					if err := utils.ValidateLogin(login); err != nil {
+						msg.Text = "❌ Invalid login format. Login must contain only letters, numbers, and underscores (3-50 characters)."
+						loginStateManager.Delete(int64(telegramID))
 					} else {
-						registerStage.EndStage()
-						if registerStage.StagesFinished() {
-							newInitialStage := stages.NewInitialStage()
-							userInfo.SetUserStage(update.Message.From.ID, newInitialStage)
-							newInitialStage.ConfigureMessage(&msg)
-							registerResult, errRegister := registerStage.Finish(currUser, apiService)
-							if errRegister != nil {
-								msg.Text = "Ошибка регистрации. " + msg.Text
-							} else {
-								if registerResult {
-									msg.Text = "Регистрация успешна. " + msg.Text
-								} else {
-									msg.Text = "Регистрация не удалась. " + msg.Text
-								}
-							}
-						} else {
-							registerStage.ConfigureMessage(&msg)
+						state.Login = login
+						state.WaitingForLogin = false
+						state.WaitingForPassword = true
+						msg.Text = "🔐 Enter your password:"
+						sentMsg, err := bot.Send(msg)
+						if err == nil {
+							state.PasswordMessageID = sentMsg.MessageID
+							loginStateManager.Set(int64(telegramID), state)
 						}
 					}
-				}
+					continue
+				} else if state.WaitingForPassword {
+					password := strings.TrimSpace(update.Message.Text)
 
-				if loginStage, resultLoginStage := userStage.(*stages.LoginStage); resultLoginStage {
-					inputError := loginStage.ComputeInput(userInfo, update.Message.From.ID, update.Message.Text)
-					if inputError != nil {
-						newInitialStage := stages.NewInitialStage()
-						userInfo.SetUserStage(update.Message.From.ID, newInitialStage)
-						newInitialStage.ConfigureMessage(&msg)
-						msg.Text = "Ошибка при вводе данных. " + msg.Text
+					if err := utils.ValidatePassword(password); err != nil {
+						msg.Text = "❌ Invalid password format. Password must be 8-128 characters and contain uppercase, lowercase letters, and numbers."
+						loginStateManager.Delete(int64(telegramID))
+						continue
+					}
+
+					deleteMsg := tgbotapi.NewDeleteMessage(chatID, update.Message.MessageID)
+					bot.Send(deleteMsg)
+
+					if state.PasswordMessageID > 0 {
+						deletePasswordMsg := tgbotapi.NewDeleteMessage(chatID, state.PasswordMessageID)
+						bot.Send(deletePasswordMsg)
+					}
+
+					user := &models.User{
+						Login:      &state.Login,
+						Password:   &password,
+						TelegramID: int64(telegramID),
+					}
+
+					success, err := apiService.Login(user)
+					if err != nil || !success {
+						msg.Text = "❌ Authorization error. Check your login and password."
 					} else {
-						loginStage.EndStage()
-						if loginStage.StagesFinished() {
-							loginResult, errLogin := loginStage.Finish(currUser, apiService)
-
-							if loginResult {
-								newMainStage := stages.NewMainStage()
-								userInfo.SetUserStage(update.Message.From.ID, newMainStage)
-								newMainStage.ConfigureMessage(&msg)
-								msg.Text = "Вход успешен. " + msg.Text
-							} else {
-								newInitialStage := stages.NewInitialStage()
-								userInfo.SetUserStage(update.Message.From.ID, newInitialStage)
-								newInitialStage.ConfigureMessage(&msg)
-								if errLogin != nil {
-									msg.Text = "Ошибка при входе. " + msg.Text
-								} else {
-									msg.Text = "Вход не удался. " + msg.Text
-								}
-							}
-						} else {
-							loginStage.ConfigureMessage(&msg)
-						}
+						msg.Text = "✅ Authorization successful! You can now use commands."
 					}
+					loginStateManager.Delete(int64(telegramID))
 				}
-
-				if _, resultMainStage := userStage.(*stages.MainStage); resultMainStage {
-					if currUser.Role == nil {
-						log.Fatal(errors.New("role is nil"))
-					}
-				switch update.Message.Text {
-				case "Парковки":
-					parkingMenuStage := stages.NewParkingMenuStage(*currUser.Role)
-					userInfo.SetUserStage(update.Message.From.ID, parkingMenuStage)
-					parkingMenuStage.ConfigureMessage(&msg)
-					case "Бронирования":
-						bookingMenuStage := stages.NewBookingsMenuStage(*currUser.Role)
-						userInfo.SetUserStage(update.Message.From.ID, bookingMenuStage)
-						bookingMenuStage.ConfigureMessage(&msg)
-					case "Выйти":
-						errLogout := apiService.Logout(currUser)
-						if errLogout != nil {
-							msg.Text = "Ошибка при выходе"
-						} else {
-							newInitialStage := stages.NewInitialStage()
-							userInfo.SetUserStage(update.Message.From.ID, newInitialStage)
-							newInitialStage.ConfigureMessage(&msg)
-							msg.Text = "Вы успешно вышли. " + msg.Text
-						}
-					default:
-						msg.Text = "Не знаю такой команды"
-					}
-				}
-
-			if _, resultMenuBookingsStage := userStage.(*stages.BookingsMenuStage); resultMenuBookingsStage {
-				switch update.Message.Text {
-				case "Забронировать парковку":
-					newCreateBookingStage := stages.NewCreateBookingStage()
-					userInfo.SetUserStage(update.Message.From.ID, newCreateBookingStage)
-					newCreateBookingStage.ConfigureMessage(&msg)
-					case "Вернутся обратно":
-						newMainStage := stages.NewMainStage()
-						userInfo.SetUserStage(update.Message.From.ID, newMainStage)
-						newMainStage.ConfigureMessage(&msg)
-					case "Получить по ID":
-						newBookingsGetBookingIdStage := stages.NewBookingsGetBookingIdStage()
-						userInfo.SetUserStage(update.Message.From.ID, newBookingsGetBookingIdStage)
-						newBookingsGetBookingIdStage.ConfigureMessage(&msg)
-				case "Получить по ID парковки":
-					newBookingGetParkingIdStage := stages.NewBookingGetParkingIdStage()
-					userInfo.SetUserStage(update.Message.From.ID, newBookingGetParkingIdStage)
-					newBookingGetParkingIdStage.ConfigureMessage(&msg)
-					default:
-						msg.Text = "Не знаю такой команды"
-					}
-				}
-
-				if bookingsGetBookingIdStage, resultBookingsGetBookingIdStage := userStage.(*stages.BookingsGetBookingIdStage); resultBookingsGetBookingIdStage {
-					inputError := bookingsGetBookingIdStage.ComputeInput(userInfo, update.Message.From.ID, update.Message.Text)
-					if inputError != nil {
-						newBookingsMenuStage := stages.NewBookingsMenuStage(*currUser.Role)
-						userInfo.SetUserStage(update.Message.From.ID, newBookingsMenuStage)
-						newBookingsMenuStage.ConfigureMessage(&msg)
-						msg.Text = "Ошибка при вводе данных. " + msg.Text
-					} else {
-						bookingsGetBookingIdStage.EndStage()
-						if bookingsGetBookingIdStage.StagesFinished() {
-							newBookingsMenuStage := stages.NewBookingsMenuStage(*currUser.Role)
-							userInfo.SetUserStage(update.Message.From.ID, newBookingsMenuStage)
-							newBookingsMenuStage.ConfigureMessage(&msg)
-
-							userBooking := userInfo.GetUserBooking(update.Message.From.ID)
-							booking, errGetBooking := apiService.GetBookingByID(userBooking.BookingID, currUser)
-							if errGetBooking != nil {
-								msg.Text = "Ошибка при получении бронирования"
-							} else {
-								msg.Text = data_representation.GetBooking(booking)
-							}
-						} else {
-							bookingsGetBookingIdStage.ConfigureMessage(&msg)
-						}
-					}
-				}
-
-			bookingsGetParkingIdStage, resultBookingsGetParkingIdStage := userStage.(*stages.BookingsGetParkingIdStage)
-			if resultBookingsGetParkingIdStage {
-				inputError := bookingsGetParkingIdStage.ComputeInput(userInfo, update.Message.From.ID, update.Message.Text)
-				log.Println(inputError)
-				if inputError != nil {
-					newBookingsMenuStage := stages.NewBookingsMenuStage(*currUser.Role)
-					userInfo.SetUserStage(update.Message.From.ID, newBookingsMenuStage)
-					newBookingsMenuStage.ConfigureMessage(&msg)
-					msg.Text = "Ошибка при вводе данных. " + msg.Text
-				} else {
-					bookingsGetParkingIdStage.EndStage()
-					if bookingsGetParkingIdStage.StagesFinished() {
-						newBookingsMenuStage := stages.NewBookingsMenuStage(*currUser.Role)
-						userInfo.SetUserStage(update.Message.From.ID, newBookingsMenuStage)
-						newBookingsMenuStage.ConfigureMessage(&msg)
-
-						userBooking := userInfo.GetUserBooking(update.Message.From.ID)
-						bookings, errGetBooking := apiService.GetBookings(*userBooking.ParkingPlaceID, currUser)
-							log.Println(errGetBooking)
-							if errGetBooking != nil {
-								msg.Text = "Ошибка при получении бронирований"
-							} else {
-								if len(bookings) > 0 {
-									for _, booking := range bookings {
-										msg.Text = data_representation.GetBooking(&booking)
-										if _, err := bot.Send(msg); err != nil {
-											log.Panic(err)
-										}
-									}
-									continue
-								} else {
-									msg.Text = "Бронирований нет"
-								}
-							}
-						} else {
-						bookingsGetParkingIdStage.ConfigureMessage(&msg)
-					}
-				}
-			}
-
-			parkingGetParkingIdStage, resultParkingGetParkingIdStage := userStage.(*stages.ParkingGetParkingIdStage)
-			log.Println(resultParkingGetParkingIdStage)
-			if resultParkingGetParkingIdStage {
-				inputError := parkingGetParkingIdStage.ComputeInput(userInfo, update.Message.From.ID, update.Message.Text)
-				if inputError != nil {
-					newParkingMenuStage := stages.NewParkingMenuStage(*currUser.Role)
-					userInfo.SetUserStage(update.Message.From.ID, newParkingMenuStage)
-					newParkingMenuStage.ConfigureMessage(&msg)
-					msg.Text = "Ошибка при вводе данных. " + msg.Text
-				} else {
-					parkingGetParkingIdStage.EndStage()
-
-					if parkingGetParkingIdStage.StagesFinished() {
-						newParkingMenuStage := stages.NewParkingMenuStage(*currUser.Role)
-						userInfo.SetUserStage(update.Message.From.ID, newParkingMenuStage)
-						newParkingMenuStage.ConfigureMessage(&msg)
-
-						userParking := userInfo.GetUserParking(update.Message.From.ID)
-
-						parkingPlace, errGetParking := apiService.GetParkingPlaceByID(userParking.ID, currUser)
-						if errGetParking != nil {
-							msg.Text = "Ошибка при получении парковки"
-						} else {
-							msg.Text = data_representation.GetParkingPlace(parkingPlace)
-						}
-					} else {
-						parkingGetParkingIdStage.ConfigureMessage(&msg)
-					}
-				}
-			}
-
-				if createBookingStage, resultCreateBookingStage := userStage.(*stages.CreateBookingStage); resultCreateBookingStage {
-					inputError := createBookingStage.ComputeInput(userInfo, update.Message.From.ID, update.Message.Text)
-					if inputError != nil {
-						newBookingsMenuStage := stages.NewBookingsMenuStage(*currUser.Role)
-						userInfo.SetUserStage(update.Message.From.ID, newBookingsMenuStage)
-						newBookingsMenuStage.ConfigureMessage(&msg)
-						msg.Text = "Ошибка при вводе данных. " + msg.Text
-					} else {
-						createBookingStage.EndStage()
-
-						if createBookingStage.StagesFinished() {
-							newBookingsMenuStage := stages.NewBookingsMenuStage(*currUser.Role)
-							userInfo.SetUserStage(update.Message.From.ID, newBookingsMenuStage)
-							newBookingsMenuStage.ConfigureMessage(&msg)
-
-							createResult, errCreate := createBookingStage.Finish(userInfo, update.Message.From.ID, apiService)
-							if errCreate != nil {
-								msg.Text = "Ошибка при создании бронирования"
-							} else {
-								if createResult {
-									msg.Text = "Успешно создано бронирование"
-								} else {
-									msg.Text = "Не удалось создать бронирование"
-								}
-							}
-						} else {
-							createBookingStage.ConfigureMessage(&msg)
-						}
-					}
-				}
-
-			if _, resultMenuParkingStage := userStage.(*stages.ParkingMenuStage); resultMenuParkingStage {
-				switch update.Message.Text {
-				case "Создать парковку":
-					newCreateParkingStage := stages.NewCreateParkingStage()
-					userInfo.SetUserStage(update.Message.From.ID, newCreateParkingStage)
-					newCreateParkingStage.ConfigureMessage(&msg)
-				case "Вернутся обратно":
-					newMainStage := stages.NewMainStage()
-					userInfo.SetUserStage(update.Message.From.ID, newMainStage)
-					newMainStage.ConfigureMessage(&msg)
-				case "Получить по ID":
-					newParkingGetParkingIdStage := stages.NewParkingGetParkingIdStage()
-					userInfo.SetUserStage(update.Message.From.ID, newParkingGetParkingIdStage)
-					newParkingGetParkingIdStage.ConfigureMessage(&msg)
-				case "Получить все":
-					parkingPlaces, errParking := apiService.GetParkingPlaces(currUser)
-					if errParking != nil {
-						msg.Text = "Ошибка при получении парковок"
-					} else {
-						if len(parkingPlaces) > 0 {
-							for _, parkingPlace := range parkingPlaces {
-								msg.Text = data_representation.GetParkingPlace(&parkingPlace)
-								if _, err := bot.Send(msg); err != nil {
-									log.Panic(err)
-								}
-							}
-							continue
-						} else {
-							msg.Text = "Парковок нет"
-						}
-					}
-
-					default:
-						msg.Text = "Не знаю такой команды"
-					}
-				}
-
-				if createParkingStage, resultCreateParkingStage := userStage.(*stages.CreateParkingStage); resultCreateParkingStage {
-					inputError := createParkingStage.ComputeInput(userInfo, update.Message.From.ID, update.Message.Text)
-					if inputError != nil {
-						newParkingMenuStage := stages.NewParkingMenuStage(*currUser.Role)
-						userInfo.SetUserStage(update.Message.From.ID, newParkingMenuStage)
-						newParkingMenuStage.ConfigureMessage(&msg)
-						msg.Text = "Ошибка при вводе данных. " + msg.Text
-					} else {
-						createParkingStage.EndStage()
-
-						if createParkingStage.StagesFinished() {
-							newParkingMenuStage := stages.NewParkingMenuStage(*currUser.Role)
-							userInfo.SetUserStage(update.Message.From.ID, newParkingMenuStage)
-							newParkingMenuStage.ConfigureMessage(&msg)
-							createResult, errCreate := createParkingStage.Finish(userInfo, update.Message.From.ID, apiService)
-							if errCreate != nil {
-								msg.Text = "Ошибка при создании отеля"
-							} else {
-								if createResult {
-									msg.Text = "Успешно создан отель"
-								} else {
-									msg.Text = "Не удалось создать отель"
-								}
-							}
-						} else {
-							createParkingStage.ConfigureMessage(&msg)
-						}
-					}
-				}
+			} else {
+				msg.Text = "Use commands starting with /. For example, /help"
 			}
 		}
-		// sending message
-		if _, err := bot.Send(msg); err != nil {
-			log.Panic(err)
+
+		if msg.Text != "" {
+			if err := utils.ValidateMessageLength(msg.Text); err != nil {
+				msg.Text = "❌ Error: message too long."
+			}
+			if _, err := bot.Send(msg); err != nil {
+				log.Printf("Error sending message: %v", err)
+			}
 		}
 	}
 }

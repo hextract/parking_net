@@ -3,22 +3,27 @@ package api_service
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"telegram_bot/models"
 )
 
 func (s *Service) Login(user *models.User) (bool, error) {
+	if user == nil || user.Login == nil || user.Password == nil {
+		return false, fmt.Errorf("invalid user data")
+	}
+
 	login := new(models.Login)
 	login.Login = *user.Login
 	login.Password = *user.Password
 	loginJSON, errJson := json.Marshal(login)
 	if errJson != nil {
-		return false, errJson
+		return false, fmt.Errorf("failed to marshal login data")
 	}
-	responseLogin, errLogin := http.Post(s.authUrl+"login", "application/json", bytes.NewBuffer(loginJSON))
+	responseLogin, errLogin := http.Post(s.authUrl+"auth/login", "application/json", bytes.NewBuffer(loginJSON))
 	if errLogin != nil {
-		return false, errLogin
+		return false, fmt.Errorf("failed to connect to auth service")
 	}
 	defer responseLogin.Body.Close()
 
@@ -37,18 +42,17 @@ func (s *Service) Login(user *models.User) (bool, error) {
 		return false, errDecode
 	}
 
-	currToken, errToken := s.GetToken(user.TelegramID)
+	currToken, errToken := s.DatabaseService.GetToken(user.TelegramID)
 	if errToken != nil {
 		return false, errToken
 	}
-	// wrong condition
 	if currToken == nil {
-		errAddToken := s.AddToken(user.TelegramID, apiToken)
+		errAddToken := s.DatabaseService.AddToken(user.TelegramID, apiToken)
 		if errAddToken != nil {
 			return false, errAddToken
 		}
 	} else {
-		errSetToken := s.SetToken(user.TelegramID, apiToken)
+		errSetToken := s.DatabaseService.SetToken(user.TelegramID, apiToken)
 		if errSetToken != nil {
 			return false, errSetToken
 		}

@@ -2,30 +2,33 @@ package api_service
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
 	"telegram_bot/models"
 )
 
-func (s *Service) GetBookings(parkingPlaceID int64, user *models.User) ([]models.Booking, error) {
+func (s *Service) GetUserBookings(user *models.User) ([]models.Booking, error) {
+	if user == nil || user.UserID == "" {
+		return nil, fmt.Errorf("invalid user")
+	}
+
 	path := s.bookingUrl + "booking/"
 
 	urlObject, errUrl := url.Parse(path)
 	if errUrl != nil {
-		return nil, errUrl
+		return nil, fmt.Errorf("failed to parse URL")
 	}
 
 	params := url.Values{}
-	params.Add("parking_place_id", strconv.FormatInt(parkingPlaceID, 10))
+	params.Add("user_id", user.UserID)
 
 	urlObject.RawQuery = params.Encode()
 
 	request, errRequest := s.CreateRequest("GET", urlObject.String(), user)
 	if errRequest != nil {
-		return nil, errRequest
+		return nil, fmt.Errorf("failed to create request")
 	}
 
 	responseBookings, errBookings := s.httpClient.Do(request)
@@ -35,7 +38,7 @@ func (s *Service) GetBookings(parkingPlaceID int64, user *models.User) ([]models
 	defer responseBookings.Body.Close()
 
 	if responseBookings.StatusCode != http.StatusOK {
-		return nil, errors.New("get bookings by parking place id failed")
+		return nil, fmt.Errorf("failed to get bookings")
 	}
 
 	bookingsJSON, errJSON := ioutil.ReadAll(responseBookings.Body)

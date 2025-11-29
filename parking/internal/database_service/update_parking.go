@@ -3,8 +3,9 @@ package database_service
 import (
 	"context"
 	"fmt"
-	"github.com/h4x4d/parking_net/parking/internal/models"
 	"strings"
+
+	"github.com/h4x4d/parking_net/parking/internal/models"
 )
 
 func (ds *DatabaseService) Update(id int64, parkingPlace *models.ParkingPlace) (*models.ParkingPlace, error) {
@@ -43,9 +44,8 @@ func (ds *DatabaseService) Update(id int64, parkingPlace *models.ParkingPlace) (
 	query += fmt.Sprintf(" %s WHERE %s RETURNING *", strings.Join(fieldNames, ", "),
 		fmt.Sprintf("id = $%d", len(values)+1))
 	values = append(values, id)
-	fmt.Println(query, values)
 	err := ds.pool.QueryRow(context.Background(), query, values...).Scan(&parkingPlace.ID, parkingPlace.Name,
-		parkingPlace.City, parkingPlace.Address, &parkingPlace.ParkingType, &parkingPlace.HourlyRate, 
+		parkingPlace.City, parkingPlace.Address, &parkingPlace.ParkingType, &parkingPlace.HourlyRate,
 		&parkingPlace.Capacity, &parkingPlace.OwnerID)
 	return parkingPlace, err
 }

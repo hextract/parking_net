@@ -25,7 +25,7 @@ func (s *Service) CreateParkingPlace(parkingPlace *models.ParkingPlace, user *mo
 	}
 	request.Body = io.NopCloser(bytes.NewBuffer(parkingJSON))
 
-	responseCreate, errCreate := s.client.Do(request)
+	responseCreate, errCreate := s.httpClient.Do(request)
 	if errCreate != nil {
 		return false, errCreate
 	}

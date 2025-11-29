@@ -16,7 +16,7 @@ func (s *Service) GetBookingByID(bookingID int64, user *models.User) (*models.Bo
 		return nil, errRequest
 	}
 
-	responseBooking, errBooking := s.client.Do(request)
+	responseBooking, errBooking := s.httpClient.Do(request)
 	if errBooking != nil {
 		return nil, errBooking
 	}

@@ -14,7 +14,7 @@ func (s *Service) GetParkingPlaces(user *models.User) ([]models.ParkingPlace, er
 		return nil, errRequest
 	}
 
-	response, err := s.client.Do(request)
+	response, err := s.httpClient.Do(request)
 	if err != nil {
 		return nil, err
 	}

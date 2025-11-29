@@ -7,12 +7,12 @@ import (
 
 func GetBooking(booking *models.Booking) string {
 	var result string
-	result += "Информация о бронировании\n"
-	result += "ID бронирования: " + "\"" + strconv.FormatInt(booking.BookingID, 10) + "\"" + ";\n"
-	result += "Период брони: " + "\"" + *booking.DateFrom + " - " + *booking.DateTo + "\"" + ";\n"
-	result += "Статус бронирования " + "\"" + booking.Status + "\"" + ";\n"
-	result += "Создан пользователем с ID " + "\"" + booking.UserID[:12] + "..." + "\"" + ";\n"
-	result += "Относится к парковке с ID " + "\"" + strconv.FormatInt(*booking.ParkingPlaceID, 10) + "\"" + ";\n"
+	result += "Booking information\n"
+	result += "Booking ID: " + "\"" + strconv.FormatInt(booking.BookingID, 10) + "\"" + ";\n"
+	result += "Booking period: " + "\"" + *booking.DateFrom + " - " + *booking.DateTo + "\"" + ";\n"
+	result += "Booking status: " + "\"" + booking.Status + "\"" + ";\n"
+	result += "Created by user with ID " + "\"" + booking.UserID[:12] + "..." + "\"" + ";\n"
+	result += "Related to parking place with ID " + "\"" + strconv.FormatInt(*booking.ParkingPlaceID, 10) + "\"" + ";\n"
 
 	return result
 }

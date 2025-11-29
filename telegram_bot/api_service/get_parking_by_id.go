@@ -16,7 +16,7 @@ func (s *Service) GetParkingPlaceByID(parkingID int64, user *models.User) (*mode
 		return nil, errRequest
 	}
 
-	response, err := s.client.Do(request)
+	response, err := s.httpClient.Do(request)
 	if err != nil {
 		return nil, err
 	}
