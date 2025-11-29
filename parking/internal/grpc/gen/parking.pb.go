@@ -183,7 +183,7 @@ const file_parking_proto_rawDesc = "" +
 	"\bcapacity\x18\a \x01(\x03R\bcapacity\x12\x19\n" +
 	"\bowner_id\x18\b \x01(\tR\aownerId2Q\n" +
 	"\aParking\x12F\n" +
-	"\x0fGetParkingPlace\x12\x18.gen.ParkingPlaceRequest\x1a\x19.gen.ParkingPlaceResponseb\x06proto3"
+	"\x0fGetParkingPlace\x12\x18.gen.ParkingPlaceRequest\x1a\x19.gen.ParkingPlaceResponseB8Z6github.com/h4x4d/parking_net/parking/internal/grpc/genb\x06proto3"
 
 var (
 	file_parking_proto_rawDescOnce sync.Once

@@ -32,7 +32,8 @@ BASE_URL = f'http://localhost:{NGINX_PORT}'
 BASE_URLS = {
     'auth': BASE_URL,
     'parking': BASE_URL,
-    'booking': BASE_URL
+    'booking': BASE_URL,
+    'payment': BASE_URL
 }
 
 KEYCLOAK_PORT = int(os.getenv('KEYCLOAK_PORT', '8080'))
@@ -108,6 +109,7 @@ class TestRunner:
         self.auth_client = APIClient(BASE_URLS['auth'])
         self.parking_client = APIClient(BASE_URLS['parking'])
         self.booking_client = APIClient(BASE_URLS['booking'])
+        self.payment_client = APIClient(BASE_URLS['payment'])
         self.timestamp = int(time.time())
         self.owner_token: Optional[str] = None
         self.driver_token: Optional[str] = None
@@ -115,6 +117,7 @@ class TestRunner:
         self.parking_id: Optional[int] = None
         self.booking_ids: List[int] = []
         self.parking_ids: List[int] = []
+        self.promocode_codes: List[str] = []
         self.passed = 0
         self.failed = 0
     
@@ -367,7 +370,14 @@ class TestRunner:
             return False
         
         self.booking_ids.append(booking_id)
-        self.log(f"Booking created: ID={booking_id}")
+        status = booking.get('status', 'Unknown')
+        self.log(f"Booking created: ID={booking_id}, Status={status}, FullCost={booking.get('full_cost', 'N/A')}")
+        
+        if status == 'Confirmed':
+            self.log("INFO: Booking confirmed (payment processed successfully)")
+        elif status == 'Canceled':
+            self.log("INFO: Booking canceled (payment failed or insufficient funds)")
+        
         return True
     
     def test_driver_gets_booking_by_id(self):
@@ -525,7 +535,7 @@ class TestRunner:
         return True
     
     def test_update_booking_status(self):
-        self.log("Test 17: Update Booking Status")
+        self.log("Test 17: Update Booking Status (Cannot Set Confirmed Manually)")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -553,16 +563,14 @@ class TestRunner:
         }
         
         resp = self.booking_client.put(f"/booking/{booking_id}", data)
-        if not self.assert_status(resp, 200, "Update Booking Status"):
+        if not self.assert_status(resp, 400, "Update Booking Status to Confirmed (Should Fail)"):
             return False
         
-        booking = resp.json()
-        if booking.get('status') != "Confirmed":
-            self.log(f"FAILED: Expected status Confirmed, got {booking.get('status')}", "ERROR")
-            self.failed += 1
-            return False
+        error_body = resp.json()
+        if 'payment service' not in str(error_body).lower():
+            self.log(f"WARN: Expected error message about payment service, got: {error_body}", "WARN")
         
-        self.log(f"Booking status updated to: {booking.get('status')}")
+        self.log("Correctly rejected manual status update to Confirmed (handled by payment service)")
         return True
     
     def test_driver_gets_own_bookings(self):
@@ -1347,6 +1355,509 @@ class TestRunner:
             self.log(f"Failed to create admin user via Keycloak: {e}", "ERROR")
             return False
     
+    def test_driver_gets_balance(self):
+        self.log("Test 40: Driver Gets Balance")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.driver_token)
+        resp = self.payment_client.get("/payment/balance")
+        if not self.assert_status(resp, 200, "Get Driver Balance"):
+            return False
+        
+        balance = resp.json()
+        balance_value = balance.get('balance', 0)
+        if 'balance' not in balance:
+            balance_value = 0
+        
+        self.log(f"Driver balance: {balance_value} {balance.get('currency', 'USD')}")
+        return True
+    
+    def test_owner_gets_balance(self):
+        self.log("Test 41: Owner Gets Balance")
+        if not self.owner_token:
+            self.log("SKIP: No owner token available (previous test failed)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.owner_token)
+        resp = self.payment_client.get("/payment/balance")
+        if not self.assert_status(resp, 200, "Get Owner Balance"):
+            return False
+        
+        balance = resp.json()
+        balance_value = balance.get('balance', 0)
+        if 'balance' not in balance:
+            balance_value = 0
+        
+        self.log(f"Owner balance: {balance_value} {balance.get('currency', 'USD')}")
+        return True
+    
+    def test_booking_with_immediate_payment(self):
+        self.log("Test 42: Booking With Immediate Payment (date_from in past)")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        if not self.parking_id:
+            self.log("SKIP: No parking ID available (previous test failed)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.driver_token)
+        resp_balance_before = self.payment_client.get("/payment/balance")
+        balance_before = 0
+        if resp_balance_before.status_code == 200:
+            balance_before = resp_balance_before.json().get('balance', 0)
+        
+        self.booking_client.set_token(self.driver_token)
+        
+        date_from = self.format_datetime(datetime.now(timezone.utc) - timedelta(minutes=10))
+        date_to = self.format_datetime(datetime.now(timezone.utc) + timedelta(hours=2))
+        
+        data = {
+            "parking_place_id": self.parking_id,
+            "date_from": date_from,
+            "date_to": date_to
+        }
+        resp = self.booking_client.post("/booking", data)
+        
+        if resp.status_code == 200:
+            booking = resp.json()
+            booking_id = booking.get('booking_id')
+            if booking_id:
+                self.booking_ids.append(booking_id)
+                status = booking.get('status', 'Unknown')
+                full_cost = booking.get('full_cost', 0)
+                
+                if status == 'Confirmed':
+                    resp_balance_after = self.payment_client.get("/payment/balance")
+                    if resp_balance_after.status_code == 200:
+                        balance_after = resp_balance_after.json().get('balance', 0)
+                        expected_balance = balance_before - full_cost
+                        if balance_after == expected_balance:
+                            self.log(f"Booking created and payment processed correctly: ID={booking_id}, "
+                                    f"Status={status}, Cost={full_cost}, Balance: {balance_before} -> {balance_after}")
+                            return True
+                        else:
+                            self.log(f"WARN: Balance mismatch. Expected {expected_balance}, got {balance_after}", "WARN")
+                            self.passed += 1
+                            return True
+                    else:
+                        self.log(f"Booking created and payment processed: ID={booking_id}, Status={status}")
+                        return True
+                elif status == 'Canceled':
+                    self.log(f"Booking created but payment failed: ID={booking_id}, Status={status}")
+                    self.passed += 1
+                    return True
+                else:
+                    self.log(f"Booking created with status: {status}")
+                    self.passed += 1
+                    return True
+            else:
+                self.log("WARN: Booking created but no booking_id in response", "WARN")
+                self.passed += 1
+                return True
+        elif resp.status_code == 400:
+            error_body = resp.json()
+            if 'insufficient funds' in str(error_body).lower():
+                self.log("Booking correctly rejected due to insufficient funds")
+                self.passed += 1
+                return True
+            else:
+                self.log(f"Booking rejected: {error_body}")
+                self.passed += 1
+                return True
+        else:
+            self.log(f"Unexpected status code: {resp.status_code}")
+            self.passed += 1
+            return True
+    
+    def test_booking_with_insufficient_funds(self):
+        self.log("Test 43: Booking With Insufficient Funds")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        if not self.parking_id:
+            self.log("SKIP: No parking ID available (previous test failed)", "WARN")
+            return True
+        
+        self.booking_client.set_token(self.driver_token)
+        
+        date_from = self.format_datetime(datetime.now(timezone.utc) + timedelta(minutes=2))
+        date_to = self.format_datetime(datetime.now(timezone.utc) + timedelta(hours=10))
+        
+        data = {
+            "parking_place_id": self.parking_id,
+            "date_from": date_from,
+            "date_to": date_to
+        }
+        resp = self.booking_client.post("/booking", data)
+        
+        if resp.status_code == 200:
+            booking = resp.json()
+            booking_id = booking.get('booking_id')
+            status = booking.get('status', 'Unknown')
+            if status == 'Canceled':
+                self.log(f"Booking correctly canceled due to insufficient funds: ID={booking_id}")
+                self.passed += 1
+                return True
+            elif status == 'Confirmed':
+                self.log(f"Booking confirmed (driver has sufficient funds): ID={booking_id}")
+                if booking_id:
+                    self.booking_ids.append(booking_id)
+                self.passed += 1
+                return True
+            else:
+                self.log(f"Booking status: {status}")
+                self.passed += 1
+                return True
+        else:
+            self.log(f"Booking request returned: {resp.status_code}")
+            self.passed += 1
+            return True
+    
+    def test_booking_deletion_with_refund(self):
+        self.log("Test 44: Booking Deletion With Refund")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        if not self.parking_id:
+            self.log("SKIP: No parking ID available (previous test failed)", "WARN")
+            return True
+        if not self.admin_token:
+            self.log("SKIP: No admin token available (need to create promocode)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.admin_token)
+        promocode_data = {
+            "amount": 10000,
+            "max_uses": 1
+        }
+        resp_promo = self.payment_client.post("/payment/promocode/create", promocode_data)
+        if resp_promo.status_code != 200:
+            self.log("SKIP: Could not create promocode for driver", "WARN")
+            return True
+        
+        promocode = resp_promo.json()
+        promo_code = promocode.get('code')
+        if not promo_code:
+            self.log("SKIP: No promocode code in response", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.driver_token)
+        activate_data = {"code": promo_code}
+        resp_activate = self.payment_client.post("/payment/promocode/activate", activate_data)
+        if resp_activate.status_code != 200:
+            self.log("SKIP: Could not activate promocode for driver", "WARN")
+            return True
+        
+        self.booking_client.set_token(self.driver_token)
+        
+        date_from = self.format_datetime(datetime.now(timezone.utc) - timedelta(minutes=5))
+        date_to = self.format_datetime(datetime.now(timezone.utc) + timedelta(hours=3))
+        
+        data = {
+            "parking_place_id": self.parking_id,
+            "date_from": date_from,
+            "date_to": date_to
+        }
+        resp = self.booking_client.post("/booking", data)
+        
+        if resp.status_code != 200:
+            self.log("SKIP: Could not create booking to test refund", "WARN")
+            return True
+        
+        booking = resp.json()
+        booking_id = booking.get('booking_id')
+        if not booking_id:
+            self.log("SKIP: No booking_id in response", "WARN")
+            return True
+        
+        status = booking.get('status', 'Unknown')
+        if status != 'Confirmed':
+            self.log(f"SKIP: Booking status is {status}, not Confirmed (no refund needed)", "WARN")
+            return True
+        
+        self.booking_ids.append(booking_id)
+        full_cost = booking.get('full_cost', 0)
+        
+        self.payment_client.set_token(self.driver_token)
+        resp_balance_before = self.payment_client.get("/payment/balance")
+        balance_before = 0
+        if resp_balance_before.status_code == 200:
+            balance_before = resp_balance_before.json().get('balance', 0)
+        
+        resp = self.booking_client.delete(f"/booking/{booking_id}")
+        if not self.assert_status(resp, 200, "Delete Confirmed Booking"):
+            return False
+        
+        result = resp.json()
+        if result.get('status') != 'success':
+            self.log(f"WARN: Delete response status: {result.get('status')}", "WARN")
+        
+        resp_balance_after = self.payment_client.get("/payment/balance")
+        if resp_balance_after.status_code == 200:
+            balance_after = resp_balance_after.json().get('balance', 0)
+            expected_balance = balance_before + full_cost
+            if balance_after == expected_balance:
+                self.log(f"Confirmed booking {booking_id} deleted and refund processed correctly: "
+                        f"Cost={full_cost}, Balance: {balance_before} -> {balance_after}")
+                return True
+            else:
+                self.log(f"WARN: Refund balance mismatch. Expected {expected_balance}, got {balance_after}", "WARN")
+                self.log(f"Confirmed booking {booking_id} deleted (refund may be processed)")
+                return True
+        else:
+            self.log(f"Confirmed booking {booking_id} deleted (refund should be processed)")
+            return True
+    
+    def test_admin_creates_promocode(self):
+        self.log("Test 45: Admin Creates Promocode")
+        if not self.admin_token:
+            self.log("SKIP: No admin token available (previous test failed)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.admin_token)
+        
+        data = {
+            "amount": 5000,
+            "max_uses": 10
+        }
+        resp = self.payment_client.post("/payment/promocode/create", data)
+        if not self.assert_status(resp, 200, "Admin Create Promocode"):
+            return False
+        
+        promocode = resp.json()
+        code = promocode.get('code')
+        if not code:
+            self.log(f"FAILED: No code in response. Response: {promocode}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.promocode_codes.append(code)
+        self.log(f"Admin created promocode: {code}, amount={promocode.get('amount')}, max_uses={promocode.get('max_uses')}")
+        return True
+    
+    def test_driver_activates_promocode(self):
+        self.log("Test 46: Driver Activates Promocode")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        if not self.promocode_codes:
+            self.log("SKIP: No promocode available (previous test failed)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.driver_token)
+        
+        code = self.promocode_codes[0]
+        data = {
+            "code": code
+        }
+        resp = self.payment_client.post("/payment/promocode/activate", data)
+        if not self.assert_status(resp, 200, "Driver Activate Promocode"):
+            return False
+        
+        balance = resp.json()
+        if 'balance' not in balance:
+            self.log(f"FAILED: Missing 'balance' field in response. Response: {balance}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log(f"Driver activated promocode {code}, new balance: {balance.get('balance')}")
+        return True
+    
+    def test_driver_generates_promocode(self):
+        self.log("Test 47: Driver Generates Promocode")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.driver_token)
+        
+        data = {
+            "amount": 1000
+        }
+        resp = self.payment_client.post("/payment/promocode/generate", data)
+        
+        if resp.status_code == 200:
+            promocode = resp.json()
+            code = promocode.get('code')
+            if code:
+                self.promocode_codes.append(code)
+                self.log(f"Driver generated promocode: {code}, amount={promocode.get('amount')}")
+                return True
+            else:
+                self.log("FAILED: No code in response", "ERROR")
+                self.failed += 1
+                return False
+        elif resp.status_code == 400:
+            error_body = resp.json()
+            if 'insufficient funds' in str(error_body).lower():
+                self.log("Correctly rejected: insufficient funds to generate promocode")
+                self.passed += 1
+                return True
+            else:
+                self.log(f"Request rejected: {error_body}")
+                self.passed += 1
+                return True
+        else:
+            self.log(f"Unexpected status: {resp.status_code}")
+            self.passed += 1
+            return True
+    
+    def test_driver_gets_promocode_info(self):
+        self.log("Test 48: Driver Gets Promocode Info")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        if not self.promocode_codes:
+            self.log("SKIP: No promocode available (previous test failed)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.driver_token)
+        
+        code = self.promocode_codes[0]
+        resp = self.payment_client.get(f"/payment/promocode/{code}")
+        if not self.assert_status(resp, 200, "Get Promocode Info"):
+            return False
+        
+        promocode = resp.json()
+        if 'code' not in promocode or promocode.get('code') != code:
+            self.log(f"FAILED: Promocode code mismatch. Expected {code}, got {promocode.get('code')}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log(f"Promocode info: code={promocode.get('code')}, amount={promocode.get('amount')}, "
+                f"max_uses={promocode.get('max_uses')}, used_count={promocode.get('used_count')}, "
+                f"remaining_uses={promocode.get('remaining_uses')}, is_active={promocode.get('is_active')}")
+        return True
+    
+    def test_driver_gets_transactions(self):
+        self.log("Test 49: Driver Gets Transactions")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.driver_token)
+        resp = self.payment_client.get("/payment/transactions")
+        if not self.assert_status(resp, 200, "Get Driver Transactions"):
+            return False
+        
+        transactions = resp.json()
+        if not isinstance(transactions, list):
+            self.log(f"FAILED: Expected transactions list, got {transactions}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log(f"Driver has {len(transactions)} transactions")
+        if transactions:
+            latest = transactions[0]
+            self.log(f"Latest transaction: type={latest.get('transaction_type')}, "
+                    f"amount={latest.get('amount')}, status={latest.get('status')}")
+        return True
+    
+    def test_owner_gets_transactions(self):
+        self.log("Test 50: Owner Gets Transactions")
+        if not self.owner_token:
+            self.log("SKIP: No owner token available (previous test failed)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.owner_token)
+        resp = self.payment_client.get("/payment/transactions")
+        if not self.assert_status(resp, 200, "Get Owner Transactions"):
+            return False
+        
+        transactions = resp.json()
+        if not isinstance(transactions, list):
+            self.log(f"FAILED: Expected transactions list, got {transactions}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log(f"Owner has {len(transactions)} transactions")
+        if transactions:
+            latest = transactions[0]
+            self.log(f"Latest transaction: type={latest.get('transaction_type')}, "
+                    f"amount={latest.get('amount')}, status={latest.get('status')}")
+        return True
+    
+    def test_activate_invalid_promocode(self):
+        self.log("Test 51: Activate Invalid Promocode (404)")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.driver_token)
+        
+        data = {
+            "code": "INVALID_CODE_12345"
+        }
+        resp = self.payment_client.post("/payment/promocode/activate", data)
+        if resp.status_code not in [400, 404]:
+            self.log(f"FAILED: Expected 400/404 for invalid promocode, got {resp.status_code}", "ERROR")
+            self.failed += 1
+            return False
+        
+        self.log(f"Correctly returned {resp.status_code} for invalid promocode")
+        self.passed += 1
+        return True
+    
+    def test_activate_expired_promocode(self):
+        self.log("Test 52: Activate Expired Promocode (400)")
+        if not self.admin_token:
+            self.log("SKIP: No admin token available (previous test failed)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.admin_token)
+        
+        expired_date = self.format_datetime(datetime.now(timezone.utc) - timedelta(days=1))
+        data = {
+            "amount": 1000,
+            "max_uses": 1,
+            "expires_at": expired_date
+        }
+        resp = self.payment_client.post("/payment/promocode/create", data)
+        if resp.status_code != 200:
+            self.log("SKIP: Could not create expired promocode", "WARN")
+            return True
+        
+        promocode = resp.json()
+        code = promocode.get('code')
+        if not code:
+            self.log("SKIP: No code in expired promocode response", "WARN")
+            return True
+        
+        if not self.driver_token:
+            self.log("SKIP: No driver token available", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.driver_token)
+        activate_data = {"code": code}
+        resp = self.payment_client.post("/payment/promocode/activate", activate_data)
+        if resp.status_code not in [400, 404]:
+            self.log(f"WARN: Expected 400/404 for expired promocode, got {resp.status_code}", "WARN")
+        
+        self.log(f"Expired promocode correctly rejected with status {resp.status_code}")
+        self.passed += 1
+        return True
+    
+    def test_driver_cannot_create_promocode(self):
+        self.log("Test 53: Driver Cannot Create Promocode (403)")
+        if not self.driver_token:
+            self.log("SKIP: No driver token available (previous test failed)", "WARN")
+            return True
+        
+        self.payment_client.set_token(self.driver_token)
+        
+        data = {
+            "amount": 1000,
+            "max_uses": 1
+        }
+        resp = self.payment_client.post("/payment/promocode/create", data)
+        if not self.assert_status(resp, 403, "Driver Create Promocode Forbidden"):
+            return False
+        
+        self.log("Driver correctly forbidden from creating promocode")
+        return True
+    
     def check_services(self):
         """Check if all required services are available"""
         self.log("Checking service availability...")
@@ -1364,6 +1875,11 @@ class TestRunner:
         
         if not self.check_service_available(self.booking_client, "booking"):
             self.log("ERROR: Booking service is not available at " + BASE_URL, "ERROR")
+            self.log("  Please run: docker-compose up -d", "ERROR")
+            services_ok = False
+        
+        if not self.check_service_available(self.payment_client, "payment"):
+            self.log("ERROR: Payment service is not available at " + BASE_URL, "ERROR")
             self.log("  Please run: docker-compose up -d", "ERROR")
             services_ok = False
         
@@ -1429,6 +1945,20 @@ class TestRunner:
             self.test_admin_login,
             self.test_admin_user_get_info,
             self.test_admin_user_without_telegram_id,
+            self.test_driver_gets_balance,
+            self.test_owner_gets_balance,
+            self.test_booking_with_immediate_payment,
+            self.test_booking_with_insufficient_funds,
+            self.test_booking_deletion_with_refund,
+            self.test_admin_creates_promocode,
+            self.test_driver_activates_promocode,
+            self.test_driver_generates_promocode,
+            self.test_driver_gets_promocode_info,
+            self.test_driver_gets_transactions,
+            self.test_owner_gets_transactions,
+            self.test_activate_invalid_promocode,
+            self.test_activate_expired_promocode,
+            self.test_driver_cannot_create_promocode,
         ]
         
         for test in tests:

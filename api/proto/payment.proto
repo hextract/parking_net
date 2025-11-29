@@ -1,0 +1,30 @@
+syntax="proto3";
+package gen;
+
+option go_package = "github.com/h4x4d/parking_net/payment/internal/grpc/gen";
+
+service Payment {
+  rpc ProcessTransaction (TransactionRequest) returns (TransactionResponse);
+  rpc ProcessRefund (RefundRequest) returns (TransactionResponse);
+}
+
+message TransactionRequest {
+  int64 booking_id = 1;
+  string driver_id = 2;
+  string owner_id = 3;
+  int64 amount = 4;
+}
+
+message RefundRequest {
+  int64 booking_id = 1;
+  string driver_id = 2;
+  string owner_id = 3;
+  int64 amount = 4;
+}
+
+message TransactionResponse {
+  int64 transaction_id = 1;
+  string status = 2;
+  string message = 3;
+}
+

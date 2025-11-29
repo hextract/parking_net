@@ -54,6 +54,16 @@ func (handler *Handler) UpdateBooking(params driver.UpdateBookingParams, user *m
 		}
 	}
 
+	if params.Object.Status == "Confirmed" {
+		errCode := int64(driver.UpdateBookingBadRequestCode)
+		return &driver.UpdateBookingBadRequest{
+			Payload: &models.Error{
+				ErrorMessage:    "booking confirmation is handled automatically by payment service",
+				ErrorStatusCode: &errCode,
+			},
+		}
+	}
+
 	isOwner, err := handler.Database.CheckOwnership(ctx, params.BookingID, user)
 	if err != nil {
 		return utils.HandleInternalError(err)

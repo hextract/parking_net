@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/h4x4d/parking_net/booking/internal/database_service"
+	payment_client "github.com/h4x4d/parking_net/booking/internal/grpc/client"
 	"github.com/h4x4d/parking_net/pkg/client"
 	"github.com/h4x4d/parking_net/pkg/jaeger"
 	"github.com/h4x4d/parking_net/pkg/notification"
@@ -11,10 +12,11 @@ import (
 )
 
 type Handler struct {
-	Database  *database_service.DatabaseService
-	KafkaConn *notification.KafkaConnection
-	KeyCloak  *client.Client
-	tracer    trace.Tracer
+	Database      *database_service.DatabaseService
+	KafkaConn     *notification.KafkaConnection
+	KeyCloak      *client.Client
+	PaymentClient *payment_client.PaymentClient
+	tracer        trace.Tracer
 }
 
 func NewHandler(connStr string) (*Handler, error) {
@@ -32,11 +34,12 @@ func NewHandler(connStr string) (*Handler, error) {
 		slog.Warn("failed to initialize Keycloak client, continuing without it", "error", keycloakErr)
 		keycloakClient = nil
 	}
+	paymentClient := payment_client.NewPaymentClient()
 	tracer, err := jaeger.InitTracer("Booking")
 	if err != nil {
 		log.Fatal("init tracer", err)
 	}
-	return &Handler{db, conn, keycloakClient, tracer}, nil
+	return &Handler{db, conn, keycloakClient, paymentClient, tracer}, nil
 }
 
 func (handler *Handler) GetTracer() trace.Tracer {

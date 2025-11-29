@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/go-openapi/runtime/middleware"
+	payment_client "github.com/h4x4d/parking_net/booking/internal/grpc/client"
 	"github.com/h4x4d/parking_net/booking/internal/models"
 	"github.com/h4x4d/parking_net/booking/internal/restapi/operations/driver"
 	"github.com/h4x4d/parking_net/booking/internal/utils"
@@ -94,6 +95,16 @@ func (handler *Handler) DeleteBooking(params driver.DeleteBookingParams, user *m
 			ErrorStatusCode: &errCode,
 		})
 		return result
+	}
+
+	if booking.Status == "Confirmed" {
+		parkingPlace, parkingErr := payment_client.GetParkingPlaceById(ctx, booking.ParkingPlaceID)
+		if parkingErr == nil {
+			_, refundErr := handler.PaymentClient.ProcessRefund(ctx, params.BookingID, booking.UserID, parkingPlace.OwnerID, booking.FullCost)
+			if refundErr != nil {
+				slog.Warn("failed to process refund for canceled booking", "error", refundErr, "booking_id", params.BookingID)
+			}
+		}
 	}
 
 	err = handler.Database.Delete(ctx, params.BookingID)

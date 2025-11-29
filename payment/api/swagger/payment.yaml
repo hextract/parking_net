@@ -1,0 +1,378 @@
+---
+swagger: "2.0"
+info:
+  description: "Parking Net Go project | Payment svc"
+  version: "0.1.0"
+  title: "parkings.payment"
+tags:
+  - name: "driver"
+    description: "Driver operations"
+  - name: "owner"
+    description: "Parking owner operations"
+  - name: "admin"
+    description: "Admin operations"
+  - name: "instruments"
+    description: "Inner operations"
+schemes:
+  - "http"
+paths:
+  /payment/balance:
+    get:
+      tags:
+        - "driver"
+        - "owner"
+      summary: "Get user balance"
+      operationId: "get_balance"
+      produces:
+        - "application/json"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Balance"
+        404:
+          description: "Balance not found"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal server error"
+          schema:
+            $ref: "#/definitions/Error"
+      security:
+        - api_key: [ ]
+
+  /payment/transactions:
+    get:
+      tags:
+        - "driver"
+        - "owner"
+      summary: "Get user transactions"
+      operationId: "get_transactions"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "limit"
+          in: "query"
+          type: "integer"
+          format: "int64"
+          default: 50
+        - name: "offset"
+          in: "query"
+          type: "integer"
+          format: "int64"
+          default: 0
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/Transaction"
+        403:
+          description: "No access"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal server error"
+          schema:
+            $ref: "#/definitions/Error"
+      security:
+        - api_key: [ ]
+
+  /payment/promocode/activate:
+    post:
+      tags:
+        - "driver"
+        - "owner"
+      summary: "Activate promocode to add balance"
+      operationId: "activate_promocode"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "object"
+          in: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/ActivatePromocodeRequest"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Balance"
+        400:
+          description: "Invalid or expired promocode"
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: "Promocode not found"
+          schema:
+            $ref: "#/definitions/Error"
+      security:
+        - api_key: [ ]
+
+  /payment/promocode/generate:
+    post:
+      tags:
+        - "driver"
+        - "owner"
+      summary: "Generate promocode from user balance"
+      operationId: "generate_promocode"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "object"
+          in: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/GeneratePromocodeRequest"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/PromocodeResponse"
+        400:
+          description: "Insufficient funds or invalid request"
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: "Internal server error"
+          schema:
+            $ref: "#/definitions/Error"
+      security:
+        - api_key: [ ]
+
+  /payment/promocode/create:
+    post:
+      tags:
+        - "admin"
+      summary: "Create promocode with custom parameters"
+      operationId: "create_promocode"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "object"
+          in: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/CreatePromocodeRequest"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/PromocodeResponse"
+        400:
+          description: "Invalid request"
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: "Admin access required"
+          schema:
+            $ref: "#/definitions/Error"
+      security:
+        - api_key: [ ]
+
+  /payment/promocode/{code}:
+    get:
+      tags:
+        - "driver"
+        - "owner"
+        - "admin"
+      summary: "Get promocode information"
+      operationId: "get_promocode"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "code"
+          in: "path"
+          required: true
+          type: "string"
+          description: "Promocode to check"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/PromocodeInfo"
+        404:
+          description: "Promocode not found"
+          schema:
+            $ref: "#/definitions/Error"
+      security:
+        - api_key: [ ]
+
+  /metrics:
+    get:
+      tags:
+        - "instruments"
+      summary: "Prometheus metrics"
+      produces:
+        - "application/json"
+      security: []
+      responses:
+        200:
+          description: ok
+
+securityDefinitions:
+  api_key:
+    type: "apiKey"
+    name: "api_key"
+    in: "header"
+definitions:
+  Balance:
+    type: "object"
+    required:
+      - balance
+      - currency
+      - user_id
+    properties:
+      user_id:
+        type: "string"
+      balance:
+        type: "integer"
+        format: "int64"
+        description: "Current balance in cents"
+      currency:
+        type: "string"
+        default: "USD"
+
+  Transaction:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      booking_id:
+        type: "integer"
+        format: "int64"
+      user_id:
+        type: "string"
+      amount:
+        type: "integer"
+        format: "int64"
+        description: "Transaction amount in cents (negative for charges, positive for payments)"
+      transaction_type:
+        type: "string"
+        enum:
+          - "charge"
+          - "payment"
+          - "refund"
+          - "promocode_activate"
+          - "promocode_generate"
+      status:
+        type: "string"
+        enum:
+          - "pending"
+          - "completed"
+          - "failed"
+          - "canceled"
+      created_at:
+        type: "string"
+        format: "date-time"
+      description:
+        type: "string"
+
+  ActivatePromocodeRequest:
+    type: "object"
+    required:
+      - code
+    properties:
+      code:
+        type: "string"
+        description: "Promocode to activate"
+
+  GeneratePromocodeRequest:
+    type: "object"
+    required:
+      - amount
+    properties:
+      amount:
+        type: "integer"
+        format: "int64"
+        description: "Amount in cents to generate promocode for"
+
+  CreatePromocodeRequest:
+    type: "object"
+    required:
+      - amount
+      - max_uses
+    properties:
+      amount:
+        type: "integer"
+        format: "int64"
+        description: "Promocode value in cents"
+      max_uses:
+        type: "integer"
+        format: "int64"
+        description: "Maximum number of times this promocode can be used"
+        default: 1
+      code:
+        type: "string"
+        description: "Custom promocode (optional, will be generated if not provided)"
+      expires_at:
+        type: "string"
+        format: "date-time"
+        description: "Expiration date (optional)"
+
+  PromocodeResponse:
+    type: "object"
+    properties:
+      code:
+        type: "string"
+        description: "Generated promocode"
+      amount:
+        type: "integer"
+        format: "int64"
+        description: "Promocode value in cents"
+      max_uses:
+        type: "integer"
+        format: "int64"
+        description: "Maximum number of uses"
+      remaining_uses:
+        type: "integer"
+        format: "int64"
+        description: "Remaining uses"
+      expires_at:
+        type: "string"
+        format: "date-time"
+        description: "Expiration date"
+
+  PromocodeInfo:
+    type: "object"
+    properties:
+      code:
+        type: "string"
+      amount:
+        type: "integer"
+        format: "int64"
+        description: "Promocode value in cents"
+      max_uses:
+        type: "integer"
+        format: "int64"
+      used_count:
+        type: "integer"
+        format: "int64"
+      remaining_uses:
+        type: "integer"
+        format: "int64"
+      expires_at:
+        type: "string"
+        format: "date-time"
+      is_active:
+        type: "boolean"
+        description: "Whether promocode is still valid and can be used"
+
+  Error:
+    type: "object"
+    required:
+      - "error_status_code"
+    properties:
+      error_message:
+        type: "string"
+      error_status_code:
+        type: integer
+

@@ -3,8 +3,10 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/h4x4d/parking_net/booking/internal/grpc/client"
+	payment_client "github.com/h4x4d/parking_net/booking/internal/grpc/client"
 	"github.com/h4x4d/parking_net/booking/internal/models"
 	"github.com/h4x4d/parking_net/booking/internal/restapi/operations/driver"
 	"github.com/h4x4d/parking_net/booking/internal/utils"
@@ -74,6 +76,41 @@ func (handler *Handler) CreateBooking(params driver.CreateBookingParams, user *m
 			return utils.HandleInternalError(errCreate)
 		}
 
+		booking, errGet := handler.Database.GetByID(*bookingId)
+		if errGet != nil {
+			slog.Error("failed to get booking after creation", "error", errGet, "booking_id", *bookingId)
+			return utils.HandleInternalError(errGet)
+		}
+
+		parkingPlace, parkingErr := payment_client.GetParkingPlaceById(ctx, params.Object.ParkingPlaceID)
+		if parkingErr != nil {
+			return utils.HandleInternalError(parkingErr)
+		}
+
+		dateFrom := time.Time(*params.Object.DateFrom)
+		now := time.Now()
+		if dateFrom.Before(now) || dateFrom.Sub(now) < 5*time.Minute {
+			paymentResult, paymentErr := handler.PaymentClient.ProcessTransaction(ctx, *bookingId, user.UserID, parkingPlace.OwnerID, booking.FullCost)
+			if paymentErr != nil || paymentResult == nil || paymentResult.Status != "completed" {
+				booking.Status = "Canceled"
+				handler.Database.Update(ctx, *bookingId, booking)
+				if paymentErr != nil {
+					slog.Error("payment processing failed", "error", paymentErr, "booking_id", *bookingId)
+				} else {
+					slog.Warn("payment processing failed", "status", paymentResult.Status, "message", paymentResult.Message, "booking_id", *bookingId)
+				}
+				errCode := int64(http.StatusBadRequest)
+				return &driver.CreateBookingBadRequest{
+					Payload: &models.Error{
+						ErrorMessage:    "payment processing failed: insufficient funds",
+						ErrorStatusCode: &errCode,
+					},
+				}
+			}
+			booking.Status = "Confirmed"
+			handler.Database.Update(ctx, *bookingId, booking)
+		}
+
 		if handler.KafkaConn != nil {
 			notifyErr := handler.KafkaConn.SendNotification(
 				pkg_models.Notification{
@@ -85,10 +122,6 @@ func (handler *Handler) CreateBooking(params driver.CreateBookingParams, user *m
 			if notifyErr != nil {
 				slog.Warn("failed to send notification", "error", notifyErr)
 			}
-		}
-		parkingPlace, parkingErr := client.GetParkingPlaceById(ctx, params.Object.ParkingPlaceID)
-		if parkingErr != nil {
-			return utils.HandleInternalError(parkingErr)
 		}
 		var tgId int
 		if handler.KeyCloak != nil {

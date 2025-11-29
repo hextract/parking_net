@@ -53,8 +53,32 @@ services:
         condition: service_healthy
       jaeger:
         condition: service_started
+      payment:
+        condition: service_started
     expose:
       - ${BOOKING_REST_PORT}
+  payment:
+    container_name: payment-svc
+    env_file:
+      - .env
+    environment:
+      - PORT=${PAYMENT_REST_PORT}
+      - HOST=${PAYMENT_HOST:-0.0.0.0}
+    build:
+      context: ./
+      dockerfile: ./payment/Dockerfile
+      args:
+        PAYMENT_REST_PORT: ${PAYMENT_REST_PORT}
+        PAYMENT_GRPC_PORT: ${PAYMENT_GRPC_PORT}
+        PAYMENT_HOST: ${PAYMENT_HOST:-0.0.0.0}
+    depends_on:
+      db:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+    expose:
+      - ${PAYMENT_REST_PORT}
+      - ${PAYMENT_GRPC_PORT}
   auth:
     container_name: auth-svc
     env_file:
@@ -232,6 +256,7 @@ services:
       - auth
       - parking
       - booking
+      - payment
       - keycloak
     restart: unless-stopped
 
@@ -248,6 +273,7 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - PARKING_DB_NAME=${PARKING_DB_NAME}
       - BOOKING_DB_NAME=${BOOKING_DB_NAME}
+      - PAYMENT_DB_NAME=${PAYMENT_DB_NAME}
       - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
       - KEYCLOAK_CLIENT=${KEYCLOAK_CLIENT}

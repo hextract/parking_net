@@ -57,9 +57,19 @@ grpc_generate:
 	  --go_out=booking/internal/grpc/gen \
 	  --go_opt=paths=source_relative \
 	  --go_opt=Mparking.proto=github.com/h4x4d/parking_net/booking/internal/grpc/gen \
+	  --go_opt=Mpayment.proto=github.com/h4x4d/parking_net/booking/internal/grpc/gen \
 	  --go-grpc_out=booking/internal/grpc/gen \
 	  --go-grpc_opt=paths=source_relative \
-	  --go-grpc_opt=Mparking.proto=github.com/h4x4d/parking_net/booking/internal/grpc/gen
+	  --go-grpc_opt=Mparking.proto=github.com/h4x4d/parking_net/booking/internal/grpc/gen \
+	  --go-grpc_opt=Mpayment.proto=github.com/h4x4d/parking_net/booking/internal/grpc/gen
+
+	protoc -I api/proto api/proto/*.proto \
+	  --go_out=payment/internal/grpc/gen \
+	  --go_opt=paths=source_relative \
+	  --go_opt=Mpayment.proto=github.com/h4x4d/parking_net/payment/internal/grpc/gen \
+	  --go-grpc_out=payment/internal/grpc/gen \
+	  --go-grpc_opt=paths=source_relative \
+	  --go-grpc_opt=Mpayment.proto=github.com/h4x4d/parking_net/payment/internal/grpc/gen
 
 .PHONY: codegen
 codegen: grpc_generate swagger_generate
