@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        # Base configuration (from root .env)
+        - VITE_BASE_HOST=${VITE_BASE_HOST:-localhost}
+        - VITE_NGINX_PORT=${NGINX_PORT:-80}
+        - VITE_AUTH_REST_PORT=${AUTH_REST_PORT:-8800}
+        - VITE_PARKING_REST_PORT=${PARKING_REST_PORT:-8888}
+        - VITE_BOOKING_REST_PORT=${BOOKING_REST_PORT:-8880}
+        - VITE_PAYMENT_REST_PORT=${PAYMENT_REST_PORT:-8890}
+        - VITE_KEYCLOAK_PORT=${KEYCLOAK_PORT:-8080}
+        - VITE_JAEGER_PORT=16686
+        - VITE_PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
+        - VITE_GRAFANA_PORT=${GRAFANA_PORT:-3000}
+    container_name: parking-frontend
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+networks:
+  default:
+    name: parking_net_default
+    external: true

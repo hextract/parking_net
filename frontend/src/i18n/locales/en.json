@@ -1,0 +1,339 @@
+{
+  "app": {
+    "name": "ParkingNet",
+    "tagline": "Smart Parking Booking System"
+  },
+  "auth": {
+    "login": "Sign In",
+    "register": "Sign Up",
+    "logout": "Logout",
+    "email": "Email",
+    "username": "Username",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "welcomeBack": "Welcome to ParkingNet",
+    "signInMessage": "Sign in to manage your parking",
+    "joinMessage": "Create your account to get started",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "accountType": "Account Type",
+    "oldPassword": "Old Password",
+    "newPassword": "New Password",
+    "changePassword": "Change Password",
+    "telegramBotDescription": "Chat with our bot",
+    "telegramBotInstructions": "to get your Telegram ID automatically.",
+    "telegramOptional": "You can skip this field if you don't have Telegram.",
+    "telegramIdPlaceholder": "Leave empty if you don't have Telegram"
+  },
+  "roles": {
+    "driver": "Driver",
+    "owner": "Owner",
+    "admin": "Admin",
+    "driverDesc": "Book parking spaces",
+    "ownerDesc": "Manage parking places"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "search": "Search Parking",
+    "myBookings": "My Bookings",
+    "myParkings": "My Parkings",
+    "allParkings": "All Parkings",
+    "admin": "Admin"
+  },
+  "driver": {
+    "welcome": "Welcome back, {{name}}!",
+    "tagline": "Manage your parking bookings and find the perfect spot",
+    "searchParking": "Search Parking",
+    "searchDesc": "Find available parking spaces near you",
+    "myBookings": "My Bookings",
+    "myBookingsDesc": "View and manage your parking bookings",
+    "totalBookings": "Total Bookings",
+    "activeBookings": "Active Bookings",
+    "totalSpent": "Total Spent",
+    "howToStart": "How to get started",
+    "step1": "Use the Search Parking feature to find available spots in your area",
+    "step2": "Select your desired parking place and create a booking",
+    "step3": "Manage all your bookings from the My Bookings page"
+  },
+  "owner": {
+    "welcome": "Welcome back, {{name}}!",
+    "tagline": "Manage your parking places and view bookings",
+    "myParkings": "My Parkings",
+    "myParkingsDesc": "View and manage your parking places",
+    "allParkingsDesc": "View all available parking places",
+    "addParking": "Add New Parking",
+    "addParkingDesc": "Create a new parking place",
+    "totalParkings": "Total Parkings",
+    "activeBookings": "Active Bookings",
+    "totalRevenue": "Total Revenue",
+    "gettingStarted": "Getting Started as an Owner",
+    "ownerStep1": "Add your parking places with details like location, capacity, and hourly rates",
+    "ownerStep2": "Manage your listings and update information as needed",
+    "ownerStep3": "View and manage bookings for each of your parking places"
+  },
+  "parking": {
+    "name": "Parking Name",
+    "city": "City",
+    "address": "Address",
+    "type": "Type",
+    "rate": "Rate",
+    "capacity": "Capacity",
+    "hourlyRate": "Hourly Rate",
+    "perHour": "per hour",
+    "spots": "spots",
+    "searchPlaceholder": "Search parking places",
+    "cityPlaceholder": "Enter city",
+    "namePlaceholder": "Parking name",
+    "allTypes": "All Types",
+    "noParking": "No parkings found",
+    "noParkingDesc": "Try adjusting your search filters",
+    "addParking": "Add Parking",
+    "editParking": "Edit Parking",
+    "deleteParking": "Delete Parking",
+    "confirmDelete": "Are you sure you want to delete this parking?",
+    "noParkingsYet": "No parkings yet",
+    "createFirst": "Create your first parking place to get started",
+    "hourlyRateHint": "Price per hour in dollars (e.g., 10.50)"
+  },
+  "parkingTypes": {
+    "outdoor": "Outdoor",
+    "covered": "Covered",
+    "underground": "Underground",
+    "multi-level": "Multi-Level"
+  },
+  "booking": {
+    "bookNow": "Book Now",
+    "bookParking": "Book {{name}}",
+    "fromDate": "From Date",
+    "toDate": "To Date",
+    "startDateTime": "Start Date & Time",
+    "endDateTime": "End Date & Time",
+    "totalCost": "Total Cost",
+    "hourlyRate": "Hourly Rate",
+    "hour": "hour",
+    "hours": "hours",
+    "duration": "Duration",
+    "estimatedCost": "Estimated Cost",
+    "minimumDuration": "Minimum booking duration: 1 hour",
+    "calculating": "Calculating...",
+    "status": "Status",
+    "noBookings": "No bookings yet",
+    "noBookingsDesc": "Start by searching for available parking spaces",
+    "cancelBooking": "Cancel",
+    "confirmBooking": "Confirm Booking",
+    "confirmCancel": "Are you sure you want to cancel this booking?",
+    "customer": "Customer",
+    "bookingId": "Booking",
+    "noBookingsForParking": "No bookings yet",
+    "bookingsWillAppear": "Bookings for this parking will appear here",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "errorPastDate": "Start date and time cannot be in the past",
+    "errorEndBeforeStart": "End date and time must be after start date and time",
+    "errorMinimumDuration": "Booking must be at least 1 hour"
+  },
+  "bookingStatus": {
+    "Waiting": "Waiting",
+    "Confirmed": "Confirmed",
+    "Canceled": "Canceled"
+  },
+  "actions": {
+    "search": "Search",
+    "create": "Create",
+    "update": "Update",
+    "delete": "Delete",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "back": "Back",
+    "backTo": "Back to {{page}}",
+    "bookings": "Bookings",
+    "manage": "Manage",
+    "copy": "Copy",
+    "refresh": "Refresh"
+  },
+  "messages": {
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error",
+    "bookingCreated": "Booking created successfully! View it in My Bookings.",
+    "parkingCreated": "Parking created successfully",
+    "parkingUpdated": "Parking updated successfully",
+    "parkingDeleted": "Parking deleted successfully",
+    "bookingCanceled": "Booking canceled successfully",
+    "statusUpdated": "Status updated successfully",
+    "passwordMismatch": "Passwords do not match",
+    "passwordLength": "Password must be at least 6 characters long",
+    "usernameLength": "Username must be at least 3 characters long",
+    "loginFailed": "Login failed",
+    "registerFailed": "Registration failed",
+    "loadFailed": "Failed to load data"
+  },
+  "validation": {
+    "required": "This field is required",
+    "pleaseFixErrors": "Please fix the errors before submitting",
+    "emailInvalid": "Invalid email address",
+    "emailRequired": "Email is required",
+    "emailLength": "Email must be between 5 and 254 characters",
+    "loginRequired": "Username is required",
+    "loginLength": "Username must be between 3 and 50 characters",
+    "loginPattern": "Username can only contain letters, numbers, and underscores",
+    "passwordRequired": "Password is required",
+    "passwordLength": "Password must be between 8 and 128 characters",
+    "passwordComplexity": "Password must contain at least one uppercase letter, one lowercase letter, and one number",
+    "passwordShort": "Password is too short",
+    "passwordMismatch": "Passwords do not match",
+    "telegramIdInvalid": "Invalid Telegram ID",
+    "telegramIdPositive": "Telegram ID must be positive",
+    "telegramIdTooLarge": "Telegram ID exceeds maximum value",
+    "parkingNameRequired": "Parking name is required",
+    "parkingNameLength": "Parking name must be between 3 and 100 characters",
+    "cityRequired": "City is required",
+    "cityLength": "City must be between 2 and 50 characters",
+    "addressRequired": "Address is required",
+    "addressLength": "Address must be between 5 and 200 characters",
+    "validNumberRequired": "Valid number is required",
+    "validCapacityRequired": "Capacity must be at least 1",
+    "hourlyRateInvalid": "Hourly rate must be a positive number",
+    "numberTooLarge": "Number is too large (max: 2,147,483,647)",
+    "promocodeCodeLength": "Promocode must be between 4 and 20 characters",
+    "promocodeCodePattern": "Promocode can only contain letters, numbers, hyphens, and underscores",
+    "promocodeAmountInvalid": "Amount must be a positive number",
+    "promocodeMaxUsesInvalid": "Max uses must be at least 1"
+  },
+  "common": {
+    "from": "From",
+    "to": "To",
+    "date": "Date",
+    "time": "Time",
+    "description": "Description",
+    "optional": "Optional",
+    "required": "Required",
+    "telegramId": "Telegram ID",
+    "linkTelegram": "Link your Telegram account for notifications (optional)",
+    "quickActions": "Quick Actions",
+    "never": "Never",
+    "copy": "Copy",
+    "refresh": "Refresh",
+    "copiedToClipboard": "Copied to clipboard!"
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "subtitle": "System monitoring and management tools",
+    "monitoringTools": "Monitoring Tools",
+    "backendServices": "Backend Services",
+    "quickInfo": "Quick Info",
+    "jaeger": {
+      "name": "Jaeger",
+      "description": "Distributed Tracing",
+      "details": "View request traces across microservices"
+    },
+    "prometheus": {
+      "name": "Prometheus",
+      "description": "Metrics & Monitoring",
+      "details": "Query metrics and view service health"
+    },
+    "grafana": {
+      "name": "Grafana",
+      "description": "Dashboards & Visualization",
+      "details": "Interactive monitoring dashboards"
+    },
+    "services": {
+      "auth": {
+        "name": "Auth Service",
+        "description": "Authentication & Authorization"
+      },
+      "parking": {
+        "name": "Parking Service",
+        "description": "Parking Management API"
+      },
+      "booking": {
+        "name": "Booking Service",
+        "description": "Booking Management API"
+      },
+      "payment": {
+        "name": "Payment Service",
+        "description": "Payment & Transaction Management"
+      },
+      "keycloak": {
+        "name": "Keycloak",
+        "description": "Identity & Access Management"
+      }
+    },
+    "info": {
+      "jaeger": "Jaeger - Distributed request tracing across microservices",
+      "prometheus": "Prometheus - Metrics collection and querying",
+      "grafana": "Grafana - Interactive monitoring dashboards and visualization"
+    },
+    "promocode": {
+      "title": "Promocode Management",
+      "subtitle": "Create and manage promotional codes for users",
+      "create": "Create Promocode",
+      "createNew": "Create New Promocode",
+      "createSuccess": "Promocode created successfully: {{code}}",
+      "createError": "Failed to create promocode",
+      "codeHint": "e.g. SUMMER2024",
+      "codeDescription": "Leave empty to generate automatically. Use letters, numbers, hyphens, and underscores. Case-sensitive.",
+      "maxUses": "Maximum Uses",
+      "maxUsesDescription": "How many times this promocode can be used in total",
+      "expiresAt": "Expiration Date",
+      "expiresAtDescription": "Leave empty for no expiration",
+      "recentlyCreated": "Recently Created Promocodes"
+    }
+  },
+  "payment": {
+    "balance": {
+      "title": "Balance",
+      "current": "Current Balance"
+    },
+    "transactions": {
+      "title": "Transaction History",
+      "total": "{{count}} transactions",
+      "empty": "No transactions yet"
+    },
+    "transactionType": {
+      "charge": "Charge",
+      "payment": "Payment",
+      "refund": "Refund",
+      "promocode_activate": "Promocode Activated",
+      "promocode_generate": "Promocode Generated"
+    },
+    "transactionStatus": {
+      "completed": "Completed",
+      "pending": "Pending",
+      "failed": "Failed",
+      "canceled": "Canceled"
+    },
+    "promocode": {
+      "title": "Promocodes",
+      "activate": "Activate",
+      "generate": "Generate",
+      "check": "Check",
+      "activateTitle": "Activate Promocode",
+      "activateDescription": "Enter a promocode to add funds to your balance",
+      "generateTitle": "Generate Promocode",
+      "generateDescription": "Create a promocode from your balance to share with others",
+      "checkTitle": "Check Promocode",
+      "checkDescription": "View information about a promocode",
+      "code": "Promocode",
+      "codePlaceholder": "Enter code (e.g. PROMO2024)",
+      "amount": "Amount (USD)",
+      "value": "Value",
+      "amountInCents": "Amount in cents: {{cents}}",
+      "remainingUses": "Remaining Uses",
+      "expiresAt": "Expires",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "info": "Promocode Information",
+      "generatedCode": "Generated Promocode",
+      "activateSuccess": "Promocode activated! New balance: {{balance}}",
+      "activateError": "Failed to activate promocode",
+      "generateSuccess": "Promocode generated: {{code}}",
+      "generateError": "Failed to generate promocode",
+      "checkError": "Promocode not found",
+      "invalidAmount": "Please enter a valid amount"
+    }
+  }
+}

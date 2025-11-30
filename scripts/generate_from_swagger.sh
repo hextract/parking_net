@@ -19,4 +19,3 @@ go mod tidy
 
 cd ../auth || exit
 go mod tidy
-

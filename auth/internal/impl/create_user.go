@@ -14,9 +14,14 @@ import (
 )
 
 func CreateUser(ctx context.Context, clt *client.Client, fields operations.PostAuthRegisterBody) (*string, error) {
-	if fields.Login == nil || fields.Email == nil || fields.Password == nil ||
-		fields.Role == nil || fields.TelegramID == nil {
-		return nil, fmt.Errorf("all fields are required")
+	if fields.Login == nil || fields.Email == nil || fields.Password == nil || fields.Role == nil {
+		return nil, fmt.Errorf("required fields are missing")
+	}
+
+	// Set default telegram_id to 0 if not provided (optional field)
+	telegramID := int64(0)
+	if fields.TelegramID != nil {
+		telegramID = *fields.TelegramID
 	}
 
 	if err := utils.ValidateLogin(*fields.Login); err != nil {
@@ -35,7 +40,7 @@ func CreateUser(ctx context.Context, clt *client.Client, fields operations.PostA
 		return nil, fmt.Errorf("invalid role: %v", err)
 	}
 
-	if err := utils.ValidateTelegramID(*fields.TelegramID); err != nil {
+	if err := utils.ValidateTelegramID(telegramID); err != nil {
 		return nil, fmt.Errorf("invalid telegram ID: %v", err)
 	}
 
@@ -44,7 +49,7 @@ func CreateUser(ctx context.Context, clt *client.Client, fields operations.PostA
 		Enabled:  gocloak.BoolP(true),
 		Username: fields.Login,
 		Attributes: &map[string][]string{
-			"telegram_id": {strconv.FormatInt(*fields.TelegramID, 10)},
+			"telegram_id": {strconv.FormatInt(telegramID, 10)},
 		},
 		Groups: &[]string{*fields.Role},
 	}

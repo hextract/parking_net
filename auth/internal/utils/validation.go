@@ -86,6 +86,10 @@ func ValidateEmail(email string) error {
 }
 
 func ValidateTelegramID(telegramID int64) error {
+	// Telegram ID is optional - allow 0 for users without Telegram
+	if telegramID == 0 {
+		return nil
+	}
 	if telegramID < MinTelegramID {
 		return fmt.Errorf("%w: must be positive", ErrInvalidTelegramID)
 	}

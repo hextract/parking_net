@@ -60,7 +60,6 @@ paths:
               - "login"
               - "password"
               - "role"
-              - "telegram_id"
             properties:
               email:
                 type: "string"
@@ -75,6 +74,7 @@ paths:
                   - "owner"
               telegram_id:
                 type: integer
+                description: "Optional Telegram ID. Use 0 or omit if user doesn't have Telegram."
       responses:
         200:
           description: "Success operation"

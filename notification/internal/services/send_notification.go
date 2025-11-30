@@ -27,8 +27,18 @@ func SendNotification(notification models.Notification) error {
 	if notification.Text == "" {
 		return errors.New("notification text is required")
 	}
+
+	// Skip notification if user doesn't have Telegram ID (optional field)
 	if notification.TelegramID <= 0 {
-		return fmt.Errorf("invalid telegram ID: %d (must be positive)", notification.TelegramID)
+		slog.Info(
+			"skipping notification for user without telegram ID",
+			slog.Group("notification-properties",
+				slog.String("name", notification.Name),
+				slog.String("text", notification.Text),
+				slog.Int("telegram-id", notification.TelegramID),
+			),
+		)
+		return nil
 	}
 
 	apiKey := os.Getenv("TELEGRAM_API_KEY")
