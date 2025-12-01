@@ -28,10 +28,15 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${defaultProto
 
 // Monitoring Tools - use HTTPS subdomains in production
 const monitoringProtocol = isProduction ? 'https' : 'http'
-const jaegerHost = isProduction ? 'jaeger.backend.parking-net.space' : `${BASE_HOST}:${JAEGER_PORT}`
-const prometheusHost = isProduction ? 'prometheus.backend.parking-net.space' : `${BASE_HOST}:${PROMETHEUS_PORT}`
-const grafanaHost = isProduction ? 'grafana.backend.parking-net.space' : `${BASE_HOST}:${GRAFANA_PORT}`
-const keycloakHost = isProduction ? 'keycloak.backend.parking-net.space' : `${BASE_HOST}:${KEYCLOAK_PORT}`
+const jaegerSubdomain = import.meta.env.VITE_JAEGER_SUBDOMAIN || (isProduction ? 'jaeger.backend.parking-net.space' : null)
+const prometheusSubdomain = import.meta.env.VITE_PROMETHEUS_SUBDOMAIN || (isProduction ? 'prometheus.backend.parking-net.space' : null)
+const grafanaSubdomain = import.meta.env.VITE_GRAFANA_SUBDOMAIN || (isProduction ? 'grafana.backend.parking-net.space' : null)
+const keycloakSubdomain = import.meta.env.VITE_KEYCLOAK_SUBDOMAIN || (isProduction ? 'keycloak.backend.parking-net.space' : null)
+
+const jaegerHost = jaegerSubdomain || `${BASE_HOST}:${JAEGER_PORT}`
+const prometheusHost = prometheusSubdomain || `${BASE_HOST}:${PROMETHEUS_PORT}`
+const grafanaHost = grafanaSubdomain || `${BASE_HOST}:${GRAFANA_PORT}`
+const keycloakHost = keycloakSubdomain || `${BASE_HOST}:${KEYCLOAK_PORT}`
 
 export const JAEGER_URL = import.meta.env.VITE_JAEGER_URL || `${monitoringProtocol}://${jaegerHost}`
 export const PROMETHEUS_URL = import.meta.env.VITE_PROMETHEUS_URL || `${monitoringProtocol}://${prometheusHost}`

@@ -169,7 +169,7 @@ services:
       --hostname-strict=false 
       --http-enabled=true 
       --import-realm
-      -Dkeycloak.frontendUrl=https://keycloak.backend.parking-net.space
+      -Dkeycloak.frontendUrl=${KEYCLOAK_FRONTEND_URL:-http://localhost:${KEYCLOAK_PORT}}
     environment:
       KC_DB_URL: jdbc:postgresql://db:${POSTGRES_PORT}/${AUTH_DB_NAME}
       KC_DB_USERNAME: ${POSTGRES_USER}
@@ -177,7 +177,7 @@ services:
       KC_DB_SCHEMA: public
       KC_FEATURES: preview
       KC_LOG_LEVEL: ERROR
-      KEYCLOAK_FRONTEND_URL: https://keycloak.backend.parking-net.space
+      KEYCLOAK_FRONTEND_URL: ${KEYCLOAK_FRONTEND_URL:-http://localhost:${KEYCLOAK_PORT}}
     env_file:
       - .env
     volumes:
