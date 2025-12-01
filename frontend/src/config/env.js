@@ -26,23 +26,29 @@ const isProduction = BASE_HOST !== 'localhost' && BASE_HOST !== '127.0.0.1'
 const defaultProtocol = isProduction ? 'https' : 'http'
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${defaultProtocol}://${BASE_HOST}${NGINX_PORT === '80' ? '' : `:${NGINX_PORT}`}`
 
-// Backend Services (Direct URLs)
-export const AUTH_SERVICE_URL = import.meta.env.VITE_AUTH_SERVICE_URL || `http://${BASE_HOST}:${AUTH_REST_PORT}`
-export const PARKING_SERVICE_URL = import.meta.env.VITE_PARKING_SERVICE_URL || `http://${BASE_HOST}:${PARKING_REST_PORT}`
-export const BOOKING_SERVICE_URL = import.meta.env.VITE_BOOKING_SERVICE_URL || `http://${BASE_HOST}:${BOOKING_REST_PORT}`
-export const PAYMENT_SERVICE_URL = import.meta.env.VITE_PAYMENT_SERVICE_URL || `http://${BASE_HOST}:${PAYMENT_REST_PORT}`
-export const KEYCLOAK_URL = import.meta.env.VITE_KEYCLOAK_URL || `http://${BASE_HOST}:${KEYCLOAK_PORT}`
+// Monitoring Tools - use HTTPS subdomains in production
+const monitoringProtocol = isProduction ? 'https' : 'http'
+const jaegerHost = isProduction ? 'jaeger.backend.parking-net.space' : `${BASE_HOST}:${JAEGER_PORT}`
+const prometheusHost = isProduction ? 'prometheus.backend.parking-net.space' : `${BASE_HOST}:${PROMETHEUS_PORT}`
+const grafanaHost = isProduction ? 'grafana.backend.parking-net.space' : `${BASE_HOST}:${GRAFANA_PORT}`
+const keycloakHost = isProduction ? 'keycloak.backend.parking-net.space' : `${BASE_HOST}:${KEYCLOAK_PORT}`
+
+export const JAEGER_URL = import.meta.env.VITE_JAEGER_URL || `${monitoringProtocol}://${jaegerHost}`
+export const PROMETHEUS_URL = import.meta.env.VITE_PROMETHEUS_URL || `${monitoringProtocol}://${prometheusHost}`
+export const GRAFANA_URL = import.meta.env.VITE_GRAFANA_URL || `${monitoringProtocol}://${grafanaHost}`
+
+// Backend Services - use API_BASE_URL paths in production, direct ports in development
+export const AUTH_SERVICE_URL = import.meta.env.VITE_AUTH_SERVICE_URL || (isProduction ? `${API_BASE_URL}/auth` : `http://${BASE_HOST}:${AUTH_REST_PORT}`)
+export const PARKING_SERVICE_URL = import.meta.env.VITE_PARKING_SERVICE_URL || (isProduction ? `${API_BASE_URL}/parking` : `http://${BASE_HOST}:${PARKING_REST_PORT}`)
+export const BOOKING_SERVICE_URL = import.meta.env.VITE_BOOKING_SERVICE_URL || (isProduction ? `${API_BASE_URL}/booking` : `http://${BASE_HOST}:${BOOKING_REST_PORT}`)
+export const PAYMENT_SERVICE_URL = import.meta.env.VITE_PAYMENT_SERVICE_URL || (isProduction ? `${API_BASE_URL}/payment` : `http://${BASE_HOST}:${PAYMENT_REST_PORT}`)
+export const KEYCLOAK_URL = import.meta.env.VITE_KEYCLOAK_URL || `${monitoringProtocol}://${keycloakHost}`
 
 // Metrics Endpoints (via Nginx Gateway)
 export const AUTH_METRICS_URL = import.meta.env.VITE_AUTH_METRICS_URL || `${API_BASE_URL}/auth/metrics`
 export const PARKING_METRICS_URL = import.meta.env.VITE_PARKING_METRICS_URL || `${API_BASE_URL}/parking/metrics`
 export const BOOKING_METRICS_URL = import.meta.env.VITE_BOOKING_METRICS_URL || `${API_BASE_URL}/booking/metrics`
 export const PAYMENT_METRICS_URL = import.meta.env.VITE_PAYMENT_METRICS_URL || `${API_BASE_URL}/payment/metrics`
-
-// Monitoring Tools
-export const JAEGER_URL = import.meta.env.VITE_JAEGER_URL || `http://${BASE_HOST}:${JAEGER_PORT}`
-export const PROMETHEUS_URL = import.meta.env.VITE_PROMETHEUS_URL || `http://${BASE_HOST}:${PROMETHEUS_PORT}`
-export const GRAFANA_URL = import.meta.env.VITE_GRAFANA_URL || `http://${BASE_HOST}:${GRAFANA_PORT}`
 
 // Export all as a single object for easier access
 export const ENV = {
