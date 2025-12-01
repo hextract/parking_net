@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-"""
-Comprehensive Integration Tests for Parking Net System
-
-Tests the complete flow:
-1. Register users (owner and driver)
-2. Login both users
-3. Owner creates parking places
-4. Driver searches and views parking
-5. Driver creates bookings
-6. Owner views bookings
-7. Updates and error cases
-"""
-
 import json
 import time
 import sys
@@ -122,7 +109,6 @@ class TestRunner:
         self.failed = 0
     
     def check_service_available(self, client: APIClient, service_name: str) -> bool:
-        """Check if a service is available by making a simple request"""
         try:
             resp = client.get("/metrics")
             if resp.status_code != 0:
@@ -135,7 +121,6 @@ class TestRunner:
         print(f"[{status}] {message}")
     
     def format_datetime(self, dt: datetime) -> str:
-        """Format datetime to RFC3339 format for API"""
         return dt.isoformat().replace('+00:00', 'Z')
     
     def assert_status(self, response: Response, expected: int, test_name: str):
@@ -241,7 +226,7 @@ class TestRunner:
         return True
     
     def test_owner_creates_parking(self):
-        self.log("Test 5: Owner Creates Parking Place")
+        self.log("Test 10: Owner Creates Parking Place")
         if not self.owner_token:
             self.log("SKIP: No owner token available (previous test failed)", "WARN")
             return True
@@ -271,7 +256,7 @@ class TestRunner:
         return True
     
     def test_owner_creates_second_parking(self):
-        self.log("Test 6: Owner Creates Second Parking Place")
+        self.log("Test 11: Owner Creates Second Parking Place")
         if not self.owner_token:
             self.log("SKIP: No owner token available (previous test failed)", "WARN")
             return True
@@ -297,7 +282,7 @@ class TestRunner:
         return True
     
     def test_driver_searches_parking_by_city(self):
-        self.log("Test 7: Driver Searches Parking by City")
+        self.log("Test 12: Driver Searches Parking by City")
         resp = self.parking_client.get("/parking", params={"city": "Moscow"})
         if not self.assert_status(resp, 200, "Search Parking by City"):
             return False
@@ -312,7 +297,7 @@ class TestRunner:
         return True
     
     def test_driver_gets_parking_by_id(self):
-        self.log("Test 8: Driver Gets Parking by ID")
+        self.log("Test 13: Driver Gets Parking by ID")
         if not self.parking_id:
             self.log("SKIP: No parking ID available (previous test failed)", "WARN")
             return True
@@ -331,7 +316,7 @@ class TestRunner:
         return True
     
     def test_driver_searches_by_type(self):
-        self.log("Test 9: Driver Searches by Parking Type")
+        self.log("Test 14: Driver Searches by Parking Type")
         resp = self.parking_client.get("/parking", params={"parking_type": "underground"})
         if not self.assert_status(resp, 200, "Search by Type"):
             return False
@@ -341,7 +326,7 @@ class TestRunner:
         return True
     
     def test_driver_creates_booking(self):
-        self.log("Test 10: Driver Creates Booking")
+        self.log("Test 24: Driver Creates Booking")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -381,7 +366,7 @@ class TestRunner:
         return True
     
     def test_driver_gets_booking_by_id(self):
-        self.log("Test 11: Driver Gets Booking by ID")
+        self.log("Test 25: Driver Gets Booking by ID")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -425,7 +410,7 @@ class TestRunner:
         return False
     
     def test_owner_gets_bookings(self):
-        self.log("Test 12: Owner Gets Bookings for Parking")
+        self.log("Test 26: Owner Gets Bookings for Parking")
         if not self.owner_token:
             self.log("SKIP: No owner token available (previous test failed)", "WARN")
             return True
@@ -448,7 +433,7 @@ class TestRunner:
         return True
     
     def test_owner_updates_parking(self):
-        self.log("Test 13: Owner Updates Parking Place")
+        self.log("Test 27: Owner Updates Parking Place")
         if not self.owner_token:
             self.log("SKIP: No owner token available (previous test failed)", "WARN")
             return True
@@ -479,7 +464,7 @@ class TestRunner:
         return True
     
     def test_driver_cannot_create_parking(self):
-        self.log("Test 14: Driver Cannot Create Parking (Forbidden)")
+        self.log("Test 28: Driver Cannot Create Parking (Forbidden)")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -501,7 +486,7 @@ class TestRunner:
         return True
     
     def test_driver_cannot_update_parking(self):
-        self.log("Test 15: Driver Cannot Update Owner's Parking")
+        self.log("Test 29: Driver Cannot Update Owner's Parking")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -526,7 +511,7 @@ class TestRunner:
         return True
     
     def test_get_nonexistent_parking(self):
-        self.log("Test 16: Get Non-Existent Parking (404)")
+        self.log("Test 30: Get Non-Existent Parking (404)")
         resp = self.parking_client.get("/parking/99999")
         if not self.assert_status(resp, 404, "Get Non-Existent Parking"):
             return False
@@ -535,7 +520,7 @@ class TestRunner:
         return True
     
     def test_update_booking_status(self):
-        self.log("Test 17: Update Booking Status (Cannot Set Confirmed Manually)")
+        self.log("Test 31: Update Booking Status (Cannot Set Confirmed Manually)")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -574,7 +559,7 @@ class TestRunner:
         return True
     
     def test_driver_gets_own_bookings(self):
-        self.log("Test 18: Driver Gets Own Bookings by user_id")
+        self.log("Test 32: Driver Gets Own Bookings by user_id")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -583,7 +568,6 @@ class TestRunner:
             return True
         self.booking_client.set_token(self.driver_token)
         
-        # Get the user_id from a booking
         resp = self.booking_client.get(f"/booking/{self.booking_ids[0]}")
         if resp.status_code != 200:
             self.log("SKIP: Could not retrieve booking to get user_id", "WARN")
@@ -595,7 +579,6 @@ class TestRunner:
             self.log("SKIP: No user_id in booking", "WARN")
             return True
         
-        # Get bookings by user_id
         resp = self.booking_client.get("/booking", params={"user_id": user_id})
         if not self.assert_status(resp, 200, "Get Bookings by user_id"):
             return False
@@ -606,7 +589,6 @@ class TestRunner:
             self.failed += 1
             return False
         
-        # Verify all bookings belong to the driver
         for b in bookings:
             if b.get('user_id') != user_id:
                 self.log(f"FAILED: Found booking with different user_id: {b.get('user_id')}", "ERROR")
@@ -617,7 +599,7 @@ class TestRunner:
         return True
     
     def test_owner_gets_own_parkings(self):
-        self.log("Test 19: Owner Gets Own Parkings by owner_id")
+        self.log("Test 33: Owner Gets Own Parkings by owner_id")
         if not self.owner_token:
             self.log("SKIP: No owner token available (previous test failed)", "WARN")
             return True
@@ -626,7 +608,6 @@ class TestRunner:
             return True
         self.parking_client.set_token(self.owner_token)
         
-        # Get the owner_id from a parking
         resp = self.parking_client.get(f"/parking/{self.parking_ids[0]}")
         if resp.status_code != 200:
             self.log("SKIP: Could not retrieve parking to get owner_id", "WARN")
@@ -638,7 +619,6 @@ class TestRunner:
             self.log("SKIP: No owner_id in parking", "WARN")
             return True
         
-        # Get parkings by owner_id
         resp = self.parking_client.get("/parking", params={"owner_id": owner_id})
         if not self.assert_status(resp, 200, "Get Parkings by owner_id"):
             return False
@@ -649,7 +629,6 @@ class TestRunner:
             self.failed += 1
             return False
         
-        # Verify all parkings belong to the owner
         for p in parkings:
             if p.get('owner_id') != owner_id:
                 self.log(f"FAILED: Found parking with different owner_id: {p.get('owner_id')}", "ERROR")
@@ -660,7 +639,7 @@ class TestRunner:
         return True
     
     def test_driver_deletes_own_booking(self):
-        self.log("Test 20: Driver Deletes Own Booking")
+        self.log("Test 34: Driver Deletes Own Booking")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -669,7 +648,6 @@ class TestRunner:
             return True
         self.booking_client.set_token(self.driver_token)
         
-        # Create a booking to delete
         date_from = self.format_datetime(datetime.now(timezone.utc) + timedelta(days=5, hours=8))
         date_to = self.format_datetime(datetime.now(timezone.utc) + timedelta(days=5, hours=16))
         
@@ -689,7 +667,6 @@ class TestRunner:
             self.log("SKIP: No booking_id in response", "WARN")
             return True
         
-        # Delete the booking
         resp = self.booking_client.delete(f"/booking/{booking_id}")
         if not self.assert_status(resp, 200, "Delete Booking"):
             return False
@@ -700,7 +677,6 @@ class TestRunner:
             self.failed += 1
             return False
         
-        # Verify booking is deleted
         resp = self.booking_client.get(f"/booking/{booking_id}")
         if resp.status_code != 404:
             self.log(f"FAILED: Booking should be deleted (404), got {resp.status_code}", "ERROR")
@@ -711,7 +687,7 @@ class TestRunner:
         return True
     
     def test_owner_deletes_booking_for_their_parking(self):
-        self.log("Test 21: Owner Deletes Booking for Their Parking")
+        self.log("Test 35: Owner Deletes Booking for Their Parking")
         if not self.owner_token:
             self.log("SKIP: No owner token available (previous test failed)", "WARN")
             return True
@@ -722,7 +698,6 @@ class TestRunner:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
         
-        # Create a booking as driver
         self.booking_client.set_token(self.driver_token)
         date_from = self.format_datetime(datetime.now(timezone.utc) + timedelta(days=7, hours=11))
         date_to = self.format_datetime(datetime.now(timezone.utc) + timedelta(days=7, hours=19))
@@ -743,7 +718,6 @@ class TestRunner:
             self.log("SKIP: No booking_id in response", "WARN")
             return True
         
-        # Owner deletes the booking
         self.booking_client.set_token(self.owner_token)
         resp = self.booking_client.delete(f"/booking/{booking_id}")
         if not self.assert_status(resp, 200, "Owner Delete Booking"):
@@ -759,7 +733,7 @@ class TestRunner:
         return True
     
     def test_driver_cannot_delete_other_driver_booking(self):
-        self.log("Test 22: Driver Cannot Delete Other Driver's Booking (403)")
+        self.log("Test 36: Driver Cannot Delete Other Driver's Booking (403)")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -767,9 +741,6 @@ class TestRunner:
             self.log("SKIP: No bookings available", "WARN")
             return True
         
-        # Try to delete a booking (should work if it's theirs, but we'll test with a non-existent one)
-        # Actually, let's create a second driver and try to delete first driver's booking
-        # For simplicity, we'll test with a non-existent booking ID
         self.booking_client.set_token(self.driver_token)
         resp = self.booking_client.delete("/booking/99999")
         if not self.assert_status(resp, 404, "Delete Non-Existent Booking"):
@@ -779,13 +750,12 @@ class TestRunner:
         return True
     
     def test_owner_deletes_own_parking(self):
-        self.log("Test 23: Owner Deletes Own Parking")
+        self.log("Test 37: Owner Deletes Own Parking")
         if not self.owner_token:
             self.log("SKIP: No owner token available (previous test failed)", "WARN")
             return True
         self.parking_client.set_token(self.owner_token)
         
-        # Create a parking to delete
         data = {
             "name": "Temporary Parking",
             "city": "Moscow",
@@ -805,7 +775,6 @@ class TestRunner:
             self.log("SKIP: No parking ID in response", "WARN")
             return True
         
-        # Delete the parking
         resp = self.parking_client.delete(f"/parking/{parking_id}")
         if not self.assert_status(resp, 200, "Delete Parking"):
             return False
@@ -816,7 +785,6 @@ class TestRunner:
             self.failed += 1
             return False
         
-        # Verify parking is deleted
         resp = self.parking_client.get(f"/parking/{parking_id}")
         if resp.status_code != 404:
             self.log(f"FAILED: Parking should be deleted (404), got {resp.status_code}", "ERROR")
@@ -827,7 +795,7 @@ class TestRunner:
         return True
     
     def test_driver_cannot_delete_parking(self):
-        self.log("Test 24: Driver Cannot Delete Parking (403)")
+        self.log("Test 38: Driver Cannot Delete Parking (403)")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -844,13 +812,11 @@ class TestRunner:
         return True
     
     def test_owner_cannot_delete_other_owner_parking(self):
-        self.log("Test 25: Owner Cannot Delete Other Owner's Parking (403)")
+        self.log("Test 39: Owner Cannot Delete Other Owner's Parking (403)")
         if not self.owner_token:
             self.log("SKIP: No owner token available (previous test failed)", "WARN")
             return True
         
-        # Try to delete a parking that doesn't belong to this owner
-        # We'll use a non-existent ID which should return 404, but if it exists and belongs to someone else, it would be 403
         self.parking_client.set_token(self.owner_token)
         resp = self.parking_client.delete("/parking/99999")
         if resp.status_code not in [403, 404]:
@@ -862,7 +828,7 @@ class TestRunner:
         return True
     
     def test_get_user_info_owner(self):
-        self.log("Test 26: Get User Info (Owner)")
+        self.log("Test 5: Get User Info (Owner)")
         if not self.owner_token:
             self.log("SKIP: No owner token available (previous test failed)", "WARN")
             return True
@@ -894,7 +860,7 @@ class TestRunner:
         return True
     
     def test_get_user_info_driver(self):
-        self.log("Test 27: Get User Info (Driver)")
+        self.log("Test 6: Get User Info (Driver)")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -914,7 +880,7 @@ class TestRunner:
         return True
     
     def test_get_user_info_unauthorized(self):
-        self.log("Test 28: Get User Info Without Token (401/422)")
+        self.log("Test 7: Get User Info Without Token (401/422)")
         self.auth_client.set_token(None)
         resp = self.auth_client.get("/auth/me")
         if resp.status_code not in [401, 422]:
@@ -927,7 +893,7 @@ class TestRunner:
         return True
     
     def test_get_user_info_invalid_token(self):
-        self.log("Test 29: Get User Info With Invalid Token (401)")
+        self.log("Test 8: Get User Info With Invalid Token (401)")
         self.auth_client.set_token("invalid-token-12345")
         resp = self.auth_client.get("/auth/me")
         if resp.status_code not in [401, 403]:
@@ -940,7 +906,7 @@ class TestRunner:
         return True
     
     def test_auth_metrics(self):
-        self.log("Test 30: Get Auth Metrics")
+        self.log("Test 9: Get Auth Metrics")
         resp = self.auth_client.get("/auth/metrics")
         if not self.assert_status(resp, 200, "Get Auth Metrics"):
             return False
@@ -958,7 +924,7 @@ class TestRunner:
         return True
     
     def test_change_password(self):
-        self.log("Test 31: Change Password")
+        self.log("Test 40: Change Password")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -1000,7 +966,7 @@ class TestRunner:
         return True
     
     def test_change_password_wrong_old_password(self):
-        self.log("Test 32: Change Password With Wrong Old Password (401)")
+        self.log("Test 41: Change Password With Wrong Old Password (401)")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -1025,7 +991,7 @@ class TestRunner:
         return True
     
     def test_change_password_invalid_user(self):
-        self.log("Test 33: Change Password For Non-Existent User (400/401)")
+        self.log("Test 42: Change Password For Non-Existent User (400/401)")
         data = {
             "login": "nonexistent_user_12345",
             "oldPassword": "somepassword",
@@ -1042,7 +1008,7 @@ class TestRunner:
         return True
     
     def test_change_password_missing_fields(self):
-        self.log("Test 34: Change Password With Missing Fields (400/422)")
+        self.log("Test 43: Change Password With Missing Fields (400/422)")
         data = {
             "login": f"driver_{self.timestamp}",
             "oldPassword": "Password123"
@@ -1058,7 +1024,7 @@ class TestRunner:
         return True
     
     def test_register_admin_rejected(self):
-        self.log("Test 35: Register Admin User (Should Be Rejected)")
+        self.log("Test 15: Register Admin User (Should Be Rejected)")
         data = {
             "email": f"admin_{self.timestamp}@test.com",
             "login": f"admin_{self.timestamp}",
@@ -1077,7 +1043,7 @@ class TestRunner:
         return True
     
     def test_admin_user_get_info(self):
-        self.log("Test 36: Admin User Get Info via /auth/me")
+        self.log("Test 18: Admin User Get Info via /auth/me")
         if not self.admin_token:
             self.log("SKIP: No admin token available. Admin users may need to be created manually in Keycloak", "WARN")
             return True
@@ -1113,7 +1079,7 @@ class TestRunner:
         return True
     
     def test_admin_user_without_telegram_id(self):
-        self.log("Test 37: Admin User Without Telegram ID (Should Work)")
+        self.log("Test 19: Admin User Without Telegram ID (Should Work)")
         if not self.admin_token:
             self.log("SKIP: No admin token available. Admin users may need to be created manually in Keycloak", "WARN")
             return True
@@ -1140,7 +1106,7 @@ class TestRunner:
         return True
     
     def test_create_admin_user(self):
-        self.log("Test 38: Create Admin User via Keycloak API")
+        self.log("Test 16: Create Admin User via Keycloak API")
         admin_login = f"admin_{self.timestamp}"
         admin_email = f"admin_{self.timestamp}@test.com"
         admin_password = "Adminpass123"
@@ -1160,7 +1126,7 @@ class TestRunner:
         return True
     
     def test_admin_login(self):
-        self.log("Test 39: Admin User Login")
+        self.log("Test 17: Admin User Login")
         if not self.admin_token:
             self.log("SKIP: No admin token available (admin user creation may have failed)", "WARN")
             return True
@@ -1188,7 +1154,6 @@ class TestRunner:
         return True
     
     def get_keycloak_admin_token(self) -> Optional[str]:
-        """Get admin token from Keycloak master realm"""
         try:
             url = f"{KEYCLOAK_URL}/realms/master/protocol/openid-connect/token"
             data = urllib.parse.urlencode({
@@ -1207,14 +1172,12 @@ class TestRunner:
             return None
     
     def create_admin_user_via_keycloak(self, login: str, email: str, password: str) -> bool:
-        """Create an admin user directly via Keycloak Admin API"""
         admin_token = self.get_keycloak_admin_token()
         if not admin_token:
             self.log("Failed to get Keycloak admin token", "ERROR")
             return False
         
         try:
-            # Check if user already exists
             url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users"
             params = urllib.parse.urlencode({'username': login, 'exact': 'true'})
             check_url = f"{url}?{params}"
@@ -1233,7 +1196,6 @@ class TestRunner:
                         if user_id:
                             self.log(f"Admin user {login} already exists, ensuring admin group membership", "INFO")
                             
-                            # Ensure user is in admin group
                             groups_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/groups"
                             req = urllib.request.Request(groups_url, headers=headers, method='GET')
                             with urllib.request.urlopen(req, timeout=10) as groups_response:
@@ -1245,7 +1207,6 @@ class TestRunner:
                                         break
                                 
                                 if admin_group and admin_group.get('id'):
-                                    # Check if user is already in group
                                     user_groups_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}/groups"
                                     req = urllib.request.Request(user_groups_url, headers=headers, method='GET')
                                     try:
@@ -1253,7 +1214,6 @@ class TestRunner:
                                             user_groups = json.loads(user_groups_response.read().decode('utf-8'))
                                             in_admin_group = any(g.get('id') == admin_group.get('id') for g in user_groups)
                                             if not in_admin_group:
-                                                # Add user to admin group
                                                 group_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}/groups/{admin_group.get('id')}"
                                                 req = urllib.request.Request(group_url, headers=headers, method='PUT')
                                                 with urllib.request.urlopen(req, timeout=10):
@@ -1261,7 +1221,6 @@ class TestRunner:
                                     except Exception:
                                         pass
                             
-                            # Try to login to get token
                             login_data = {
                                 "login": login,
                                 "password": password
@@ -1275,7 +1234,6 @@ class TestRunner:
                 if e.code != 404:
                     pass
             
-            # Create new user
             user_data = {
                 "username": login,
                 "email": email,
@@ -1295,7 +1253,6 @@ class TestRunner:
                     if location:
                         user_id = location.split('/')[-1]
                         
-                        # Set password
                         password_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}/reset-password"
                         password_data = {
                             "type": "password",
@@ -1310,7 +1267,6 @@ class TestRunner:
                         with urllib.request.urlopen(req, timeout=10):
                             pass
                         
-                        # Get admin group and add user to it
                         groups_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/groups"
                         req = urllib.request.Request(groups_url, headers=headers, method='GET')
                         with urllib.request.urlopen(req, timeout=10) as response:
@@ -1322,7 +1278,6 @@ class TestRunner:
                                     break
                             
                             if admin_group and admin_group.get('id'):
-                                # Add user to admin group
                                 group_id = admin_group.get('id')
                                 group_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}/groups/{group_id}"
                                 req = urllib.request.Request(group_url, headers=headers, method='PUT')
@@ -1334,7 +1289,6 @@ class TestRunner:
                             else:
                                 self.log("Warning: Admin group not found in realm", "WARN")
                             
-                        # Login to get token
                         login_data = {
                             "login": login,
                             "password": password
@@ -1356,7 +1310,7 @@ class TestRunner:
             return False
     
     def test_driver_gets_balance(self):
-        self.log("Test 40: Driver Gets Balance")
+        self.log("Test 20: Driver Gets Balance")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -1375,7 +1329,7 @@ class TestRunner:
         return True
     
     def test_owner_gets_balance(self):
-        self.log("Test 41: Owner Gets Balance")
+        self.log("Test 21: Owner Gets Balance")
         if not self.owner_token:
             self.log("SKIP: No owner token available (previous test failed)", "WARN")
             return True
@@ -1394,7 +1348,7 @@ class TestRunner:
         return True
     
     def test_booking_with_immediate_payment(self):
-        self.log("Test 42: Booking With Immediate Payment (date_from in past)")
+        self.log("Test 44: Booking With Immediate Payment (date_from in past)")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -1472,7 +1426,7 @@ class TestRunner:
             return True
     
     def test_booking_with_insufficient_funds(self):
-        self.log("Test 43: Booking With Insufficient Funds")
+        self.log("Test 45: Booking With Insufficient Funds")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -1516,7 +1470,7 @@ class TestRunner:
             return True
     
     def test_booking_deletion_with_refund(self):
-        self.log("Test 44: Booking Deletion With Refund")
+        self.log("Test 46: Booking Deletion With Refund")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -1611,7 +1565,7 @@ class TestRunner:
             return True
     
     def test_admin_creates_promocode(self):
-        self.log("Test 45: Admin Creates Promocode")
+        self.log("Test 22: Admin Creates Promocode")
         if not self.admin_token:
             self.log("SKIP: No admin token available (previous test failed)", "WARN")
             return True
@@ -1638,7 +1592,7 @@ class TestRunner:
         return True
     
     def test_driver_activates_promocode(self):
-        self.log("Test 46: Driver Activates Promocode")
+        self.log("Test 23: Driver Activates Promocode")
         if not self.driver_token:
             self.log("SKIP: No driver token available (previous test failed)", "WARN")
             return True
@@ -1859,7 +1813,6 @@ class TestRunner:
         return True
     
     def check_services(self):
-        """Check if all required services are available"""
         self.log("Checking service availability...")
         services_ok = True
         
@@ -1896,7 +1849,6 @@ class TestRunner:
         self.log("Starting Integration Tests")
         self.log("=" * 60)
         
-        # Check services before running tests
         if not self.check_services():
             self.log("=" * 60)
             self.log(f"Tests aborted: {self.passed} passed, {self.failed} failed")
@@ -1920,6 +1872,15 @@ class TestRunner:
             self.test_driver_searches_parking_by_city,
             self.test_driver_gets_parking_by_id,
             self.test_driver_searches_by_type,
+            self.test_register_admin_rejected,
+            self.test_create_admin_user,
+            self.test_admin_login,
+            self.test_admin_user_get_info,
+            self.test_admin_user_without_telegram_id,
+            self.test_driver_gets_balance,
+            self.test_owner_gets_balance,
+            self.test_admin_creates_promocode,
+            self.test_driver_activates_promocode,
             self.test_driver_creates_booking,
             self.test_driver_gets_booking_by_id,
             self.test_owner_gets_bookings,
@@ -1940,18 +1901,9 @@ class TestRunner:
             self.test_change_password_wrong_old_password,
             self.test_change_password_invalid_user,
             self.test_change_password_missing_fields,
-            self.test_register_admin_rejected,
-            self.test_create_admin_user,
-            self.test_admin_login,
-            self.test_admin_user_get_info,
-            self.test_admin_user_without_telegram_id,
-            self.test_driver_gets_balance,
-            self.test_owner_gets_balance,
             self.test_booking_with_immediate_payment,
             self.test_booking_with_insufficient_funds,
             self.test_booking_deletion_with_refund,
-            self.test_admin_creates_promocode,
-            self.test_driver_activates_promocode,
             self.test_driver_generates_promocode,
             self.test_driver_gets_promocode_info,
             self.test_driver_gets_transactions,

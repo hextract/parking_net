@@ -3,7 +3,9 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"time"
+
+	"log/slog"
+	"net/http"
 
 	"github.com/go-openapi/runtime/middleware"
 	payment_client "github.com/h4x4d/parking_net/booking/internal/grpc/client"
@@ -12,8 +14,6 @@ import (
 	"github.com/h4x4d/parking_net/booking/internal/utils"
 	pkg_models "github.com/h4x4d/parking_net/pkg/models"
 	"google.golang.org/grpc/metadata"
-	"log/slog"
-	"net/http"
 )
 
 func (handler *Handler) CreateBooking(params driver.CreateBookingParams, user *models.User) (responder middleware.Responder) {
@@ -87,29 +87,25 @@ func (handler *Handler) CreateBooking(params driver.CreateBookingParams, user *m
 			return utils.HandleInternalError(parkingErr)
 		}
 
-		dateFrom := time.Time(*params.Object.DateFrom)
-		now := time.Now()
-		if dateFrom.Before(now) || dateFrom.Sub(now) < 5*time.Minute {
-			paymentResult, paymentErr := handler.PaymentClient.ProcessTransaction(ctx, *bookingId, user.UserID, parkingPlace.OwnerID, booking.FullCost)
-			if paymentErr != nil || paymentResult == nil || paymentResult.Status != "completed" {
-				booking.Status = "Canceled"
-				handler.Database.Update(ctx, *bookingId, booking)
-				if paymentErr != nil {
-					slog.Error("payment processing failed", "error", paymentErr, "booking_id", *bookingId)
-				} else {
-					slog.Warn("payment processing failed", "status", paymentResult.Status, "message", paymentResult.Message, "booking_id", *bookingId)
-				}
-				errCode := int64(http.StatusBadRequest)
-				return &driver.CreateBookingBadRequest{
-					Payload: &models.Error{
-						ErrorMessage:    "payment processing failed: insufficient funds",
-						ErrorStatusCode: &errCode,
-					},
-				}
-			}
-			booking.Status = "Confirmed"
+		paymentResult, paymentErr := handler.PaymentClient.ProcessTransaction(ctx, *bookingId, user.UserID, parkingPlace.OwnerID, booking.FullCost)
+		if paymentErr != nil || paymentResult == nil || paymentResult.Status != "completed" {
+			booking.Status = "Canceled"
 			handler.Database.Update(ctx, *bookingId, booking)
+			if paymentErr != nil {
+				slog.Error("payment processing failed", "error", paymentErr, "booking_id", *bookingId)
+			} else {
+				slog.Warn("payment processing failed", "status", paymentResult.Status, "message", paymentResult.Message, "booking_id", *bookingId)
+			}
+			errCode := int64(http.StatusBadRequest)
+			return &driver.CreateBookingBadRequest{
+				Payload: &models.Error{
+					ErrorMessage:    "payment processing failed: insufficient funds",
+					ErrorStatusCode: &errCode,
+				},
+			}
 		}
+		booking.Status = "Confirmed"
+		handler.Database.Update(ctx, *bookingId, booking)
 
 		if handler.KafkaConn != nil {
 			notifyErr := handler.KafkaConn.SendNotification(
