@@ -168,7 +168,9 @@
     "usernameLength": "Username must be at least 3 characters long",
     "loginFailed": "Login failed",
     "registerFailed": "Registration failed",
-    "loadFailed": "Failed to load data"
+    "loadFailed": "Failed to load data",
+    "insufficientFunds": "Insufficient funds. Please top up your balance to create a booking.",
+    "paymentFailed": "Payment processing failed. Please check your balance and try again."
   },
   "validation": {
     "required": "This field is required",

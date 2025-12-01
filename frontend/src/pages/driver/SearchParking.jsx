@@ -24,6 +24,7 @@ const SearchParking = () => {
   })
   const [bookingLoading, setBookingLoading] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
+  const [bookingError, setBookingError] = useState('')
 
   useEffect(() => {
     searchParkings()
@@ -65,24 +66,23 @@ const SearchParking = () => {
     const now = new Date()
 
     if (dateFrom < now) {
-      setError(t('booking.errorPastDate'))
+      setBookingError(t('booking.errorPastDate'))
       return
     }
 
     if (dateTo <= dateFrom) {
-      setError(t('booking.errorEndBeforeStart'))
+      setBookingError(t('booking.errorEndBeforeStart'))
       return
     }
 
-    // Calculate duration in hours for cost estimation
     const durationInHours = (dateTo - dateFrom) / (1000 * 60 * 60)
     if (durationInHours < 1) {
-      setError(t('booking.errorMinimumDuration'))
+      setBookingError(t('booking.errorMinimumDuration'))
       return
     }
 
     setBookingLoading(true)
-    setError('')
+    setBookingError('')
     setBookingSuccess(false)
 
     try {
@@ -103,12 +103,24 @@ const SearchParking = () => {
       setBookingSuccess(true)
       setSelectedParking(null)
       setBookingData({ date_from: '', date_to: '' })
+      setBookingError('')
 
       setTimeout(() => {
         setBookingSuccess(false)
       }, 3000)
     } catch (err) {
-      setError(err.message || 'Failed to create booking')
+      const errorMessage = err.message || err.data?.error_message || ''
+      const lowerMessage = errorMessage.toLowerCase()
+      
+      if (lowerMessage.includes('insufficient funds') || 
+          lowerMessage.includes('payment processing failed') ||
+          lowerMessage.includes('insufficient balance')) {
+        setBookingError(t('messages.insufficientFunds'))
+      } else if (lowerMessage.includes('payment')) {
+        setBookingError(t('messages.paymentFailed'))
+      } else {
+        setBookingError(errorMessage || t('messages.loadFailed'))
+      }
     } finally {
       setBookingLoading(false)
     }
@@ -188,7 +200,7 @@ const SearchParking = () => {
         </div>
       )}
 
-      {/* Error Message */}
+      {/* Error Message - only for search errors */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
           {error}
@@ -255,6 +267,12 @@ const SearchParking = () => {
             <h2 className="text-xl font-bold text-gray-900 mb-4">
               {t('booking.bookParking', { name: selectedParking.name })}
             </h2>
+
+            {bookingError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+                {bookingError}
+              </div>
+            )}
 
             <form onSubmit={handleBooking} className="space-y-4">
               <div>
@@ -327,6 +345,7 @@ const SearchParking = () => {
                   onClick={() => {
                     setSelectedParking(null)
                     setBookingData({ date_from: '', date_to: '' })
+                    setBookingError('')
                   }}
                   className="btn-secondary flex-1"
                   disabled={bookingLoading}
