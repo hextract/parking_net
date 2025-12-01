@@ -32,9 +32,9 @@ services:
         condition: service_healthy
       jaeger:
         condition: service_healthy
-    expose:
-      - ${PARKING_REST_PORT}
-      - ${PARKING_GRPC_PORT}
+    ports:
+      - "${PARKING_REST_PORT}:${PARKING_REST_PORT}"
+      - "${PARKING_GRPC_PORT}:${PARKING_GRPC_PORT}"
   booking:
     container_name: booking-svc
     env_file:
@@ -55,8 +55,8 @@ services:
         condition: service_started
       payment:
         condition: service_started
-    expose:
-      - ${BOOKING_REST_PORT}
+    ports:
+      - "${BOOKING_REST_PORT}:${BOOKING_REST_PORT}"
   payment:
     container_name: payment-svc
     env_file:
@@ -76,9 +76,9 @@ services:
         condition: service_healthy
       jaeger:
         condition: service_started
-    expose:
-      - ${PAYMENT_REST_PORT}
-      - ${PAYMENT_GRPC_PORT}
+    ports:
+      - "${PAYMENT_REST_PORT}:${PAYMENT_REST_PORT}"
+      - "${PAYMENT_GRPC_PORT}:${PAYMENT_GRPC_PORT}"
   auth:
     container_name: auth-svc
     env_file:
@@ -99,8 +99,8 @@ services:
         condition: service_healthy
       jaeger:
         condition: service_healthy
-    expose:
-      - ${AUTH_REST_PORT}
+    ports:
+      - "${AUTH_REST_PORT}:${AUTH_REST_PORT}"
   notification:
     container_name: notification-svc
     build:
@@ -242,23 +242,6 @@ services:
       - "${GRAFANA_PORT}:${GRAFANA_PORT}"
     depends_on:
       - prometheus
-
-  nginx:
-    container_name: nginx-gateway
-    build:
-      context: ./
-      dockerfile: ./nginx/Dockerfile
-    env_file:
-      - .env
-    ports:
-      - "${NGINX_PORT}:${NGINX_PORT}"
-    depends_on:
-      - auth
-      - parking
-      - booking
-      - payment
-      - keycloak
-    restart: unless-stopped
 
   setup:
     build:

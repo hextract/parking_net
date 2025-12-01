@@ -21,7 +21,10 @@ const PROMETHEUS_PORT = import.meta.env.VITE_PROMETHEUS_PORT || '9090'
 const GRAFANA_PORT = import.meta.env.VITE_GRAFANA_PORT || '3000'
 
 // API Configuration (via Nginx Gateway)
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${BASE_HOST}${NGINX_PORT === '80' ? '' : `:${NGINX_PORT}`}`
+// Use HTTPS if VITE_API_BASE_URL is not set and we're in production (not localhost)
+const isProduction = BASE_HOST !== 'localhost' && BASE_HOST !== '127.0.0.1'
+const defaultProtocol = isProduction ? 'https' : 'http'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${defaultProtocol}://${BASE_HOST}${NGINX_PORT === '80' ? '' : `:${NGINX_PORT}`}`
 
 // Backend Services (Direct URLs)
 export const AUTH_SERVICE_URL = import.meta.env.VITE_AUTH_SERVICE_URL || `http://${BASE_HOST}:${AUTH_REST_PORT}`

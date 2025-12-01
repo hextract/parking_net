@@ -5,8 +5,8 @@ services:
     build:
       context: .
       args:
-        # Base configuration (from root .env)
-        - VITE_BASE_HOST=${VITE_BASE_HOST:-localhost}
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-https://backend.parking-net.space}
+        - VITE_BASE_HOST=${VITE_BASE_HOST:-backend.parking-net.space}
         - VITE_NGINX_PORT=${NGINX_PORT:-80}
         - VITE_AUTH_REST_PORT=${AUTH_REST_PORT:-8800}
         - VITE_PARKING_REST_PORT=${PARKING_REST_PORT:-8888}
