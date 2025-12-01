@@ -1,3 +1,11 @@
+map $http_origin $cors_origin {
+    default "*";
+    "~^https://parking-net\.space(:[0-9]+)?$" $http_origin;
+    "~^https://www\.parking-net\.space(:[0-9]+)?$" $http_origin;
+    "~^http://localhost(:[0-9]+)?$" $http_origin;
+    "~^http://127\.0\.0\.1(:[0-9]+)?$" $http_origin;
+}
+
 server {
     listen 80;
     server_name backend.parking-net.space 158.160.131.173;
@@ -30,39 +38,16 @@ server {
     underscores_in_headers on;
     client_max_body_size 10M;
 
-    set $cors_origin "";
-    if ($http_origin ~* "^https://parking-net\.space(:[0-9]+)?$") {
-        set $cors_origin $http_origin;
-    }
-    if ($http_origin ~* "^https://www\.parking-net\.space(:[0-9]+)?$") {
-        set $cors_origin $http_origin;
-    }
-    if ($http_origin ~* "^http://localhost(:[0-9]+)?$") {
-        set $cors_origin $http_origin;
-    }
-    if ($http_origin ~* "^http://127\.0\.0\.1(:[0-9]+)?$") {
-        set $cors_origin $http_origin;
-    }
-    if ($cors_origin = "") {
-        set $cors_origin "*";
-    }
-
-    add_header Access-Control-Allow-Origin $cors_origin always;
-    add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
-    add_header Access-Control-Allow-Headers "Content-Type, api_key, Authorization, X-Requested-With" always;
-    add_header Access-Control-Max-Age 3600 always;
-
-    if ($request_method = 'OPTIONS') {
+    location /auth {
         add_header Access-Control-Allow-Origin $cors_origin always;
         add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
         add_header Access-Control-Allow-Headers "Content-Type, api_key, Authorization, X-Requested-With" always;
         add_header Access-Control-Max-Age 3600 always;
-        add_header Content-Length 0;
-        add_header Content-Type text/plain;
-        return 204;
-    }
 
-    location /auth {
+        if ($request_method = OPTIONS) {
+            return 204;
+        }
+
         proxy_pass http://localhost:8800;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -72,6 +57,15 @@ server {
     }
 
     location /parking {
+        add_header Access-Control-Allow-Origin $cors_origin always;
+        add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Content-Type, api_key, Authorization, X-Requested-With" always;
+        add_header Access-Control-Max-Age 3600 always;
+
+        if ($request_method = OPTIONS) {
+            return 204;
+        }
+
         proxy_pass http://localhost:8888;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -81,6 +75,15 @@ server {
     }
 
     location /booking {
+        add_header Access-Control-Allow-Origin $cors_origin always;
+        add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Content-Type, api_key, Authorization, X-Requested-With" always;
+        add_header Access-Control-Max-Age 3600 always;
+
+        if ($request_method = OPTIONS) {
+            return 204;
+        }
+
         proxy_pass http://localhost:8880;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -90,6 +93,15 @@ server {
     }
 
     location /payment {
+        add_header Access-Control-Allow-Origin $cors_origin always;
+        add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Content-Type, api_key, Authorization, X-Requested-With" always;
+        add_header Access-Control-Max-Age 3600 always;
+
+        if ($request_method = OPTIONS) {
+            return 204;
+        }
+
         proxy_pass http://localhost:8890;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -102,4 +114,3 @@ server {
         return 404;
     }
 }
-
