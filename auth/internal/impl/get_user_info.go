@@ -3,6 +3,7 @@ package impl
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
 
 	"github.com/h4x4d/parking_net/auth/internal/restapi/operations"
@@ -14,14 +15,22 @@ func GetUserInfo(ctx context.Context, clt *client.Client, params operations.GetA
 	token := params.APIKey
 
 	if token == "" {
+		slog.Error("GetUserInfo: token is empty")
 		return nil, fmt.Errorf("token is required")
 	}
 
+	tokenPrefix := token
+	if len(token) > 20 {
+		tokenPrefix = token[:20]
+	}
+	slog.Info("GetUserInfo: calling CheckToken", slog.String("token_prefix", tokenPrefix))
 	// Use CheckToken to get user info
 	user, err := clt.CheckToken(ctx, token)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user info")
+		slog.Error("GetUserInfo: CheckToken failed", slog.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
+	slog.Info("GetUserInfo: CheckToken succeeded", slog.String("user_id", user.UserID), slog.String("role", user.Role))
 
 	// Get user details from Keycloak
 	adminToken, err := clt.GetAdminToken(ctx)

@@ -3,6 +3,7 @@ import { useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
+import CallbackPage from './pages/auth/CallbackPage'
 import DriverDashboard from './pages/driver/DriverDashboard'
 import SearchParking from './pages/driver/SearchParking'
 import MyBookings from './pages/driver/MyBookings'
@@ -28,6 +29,7 @@ function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/auth/callback" element={<CallbackPage />} />
 
       <Route element={<Layout />}>
         {/* Driver Routes */}

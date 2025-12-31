@@ -83,9 +83,8 @@ type PostAuthRegisterBody struct {
 	// Enum: ["driver","owner"]
 	Role *string `json:"role"`
 
-	// telegram id
-	// Required: true
-	TelegramID *int64 `json:"telegram_id"`
+	// Optional Telegram ID. Use 0 or omit if user doesn't have Telegram.
+	TelegramID int64 `json:"telegram_id,omitempty"`
 }
 
 // Validate validates this post auth register body
@@ -105,10 +104,6 @@ func (o *PostAuthRegisterBody) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := o.validateRole(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := o.validateTelegramID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -182,15 +177,6 @@ func (o *PostAuthRegisterBody) validateRole(formats strfmt.Registry) error {
 
 	// value enum
 	if err := o.validateRoleEnum("body"+"."+"role", "body", *o.Role); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (o *PostAuthRegisterBody) validateTelegramID(formats strfmt.Registry) error {
-
-	if err := validate.Required("body"+"."+"telegram_id", "body", o.TelegramID); err != nil {
 		return err
 	}
 

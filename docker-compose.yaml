@@ -168,6 +168,7 @@ services:
       --db postgres 
       --hostname-strict=false 
       --http-enabled=true 
+      --proxy-headers=xforwarded 
       --import-realm
       -Dkeycloak.frontendUrl=${KEYCLOAK_FRONTEND_URL:-http://localhost:${KEYCLOAK_PORT}}
     environment:
@@ -178,6 +179,11 @@ services:
       KC_FEATURES: preview
       KC_LOG_LEVEL: ERROR
       KEYCLOAK_FRONTEND_URL: ${KEYCLOAK_FRONTEND_URL:-http://localhost:${KEYCLOAK_PORT}}
+      KC_HOSTNAME: ${KEYCLOAK_SUBDOMAIN:-keycloak.backend.parking-net.space}
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_RELATIVE_PATH: /
+      KC_PROXY: edge
+      KC_PROXY_ADDRESS_FORWARDING: true
     env_file:
       - .env
     volumes:
@@ -272,6 +278,10 @@ services:
       - KEYCLOAK_REALM=${KEYCLOAK_REALM}
       - KEYCLOAK_PORT=${KEYCLOAK_PORT}
       - KEYCLOAK_INNER_PORT=${KEYCLOAK_INNER_PORT}
+      - BACKEND_DOMAIN=${BACKEND_DOMAIN}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
+      - GOOGLE_OAUTH_REDIRECT_URI=${GOOGLE_OAUTH_REDIRECT_URI}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/setup

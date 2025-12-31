@@ -23,7 +23,9 @@
     "telegramBotDescription": "Напишите нашему боту",
     "telegramBotInstructions": "чтобы автоматически получить ваш Telegram ID.",
     "telegramOptional": "Вы можете пропустить это поле, если у вас нет Telegram.",
-    "telegramIdPlaceholder": "Оставьте пустым, если у вас нет Telegram"
+    "telegramIdPlaceholder": "Оставьте пустым, если у вас нет Telegram",
+    "loginWithGoogle": "Войти через Google",
+    "orContinueWith": "Или продолжить с"
   },
   "roles": {
     "driver": "Водитель",

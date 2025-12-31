@@ -43,6 +43,8 @@ func configureAPI(api *operations.ParkingsAuthAPI) http.Handler {
 	api.PostAuthChangePasswordHandler = operations.PostAuthChangePasswordHandlerFunc(authHandler.ChangePasswordHandler)
 	api.PostAuthLoginHandler = operations.PostAuthLoginHandlerFunc(authHandler.LoginHandler)
 	api.PostAuthRegisterHandler = operations.PostAuthRegisterHandlerFunc(authHandler.RegisterHandler)
+	api.GetAuthGoogleLoginHandler = operations.GetAuthGoogleLoginHandlerFunc(authHandler.GoogleLoginHandler)
+	api.GetAuthGoogleCallbackHandler = operations.GetAuthGoogleCallbackHandlerFunc(authHandler.GoogleCallbackHandler)
 
 	api.PreServerShutdown = func() {}
 

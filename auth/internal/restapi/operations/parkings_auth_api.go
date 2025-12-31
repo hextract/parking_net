@@ -42,6 +42,12 @@ func NewParkingsAuthAPI(spec *loads.Document) *ParkingsAuthAPI {
 
 		JSONProducer: runtime.JSONProducer(),
 
+		GetAuthGoogleCallbackHandler: GetAuthGoogleCallbackHandlerFunc(func(params GetAuthGoogleCallbackParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetAuthGoogleCallback has not yet been implemented")
+		}),
+		GetAuthGoogleLoginHandler: GetAuthGoogleLoginHandlerFunc(func(params GetAuthGoogleLoginParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetAuthGoogleLogin has not yet been implemented")
+		}),
 		GetAuthMeHandler: GetAuthMeHandlerFunc(func(params GetAuthMeParams) middleware.Responder {
 			return middleware.NotImplemented("operation GetAuthMe has not yet been implemented")
 		}),
@@ -93,6 +99,10 @@ type ParkingsAuthAPI struct {
 	//   - application/json
 	JSONProducer runtime.Producer
 
+	// GetAuthGoogleCallbackHandler sets the operation handler for the get auth google callback operation
+	GetAuthGoogleCallbackHandler GetAuthGoogleCallbackHandler
+	// GetAuthGoogleLoginHandler sets the operation handler for the get auth google login operation
+	GetAuthGoogleLoginHandler GetAuthGoogleLoginHandler
 	// GetAuthMeHandler sets the operation handler for the get auth me operation
 	GetAuthMeHandler GetAuthMeHandler
 	// GetAuthMetricsHandler sets the operation handler for the get auth metrics operation
@@ -180,6 +190,12 @@ func (o *ParkingsAuthAPI) Validate() error {
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
+	if o.GetAuthGoogleCallbackHandler == nil {
+		unregistered = append(unregistered, "GetAuthGoogleCallbackHandler")
+	}
+	if o.GetAuthGoogleLoginHandler == nil {
+		unregistered = append(unregistered, "GetAuthGoogleLoginHandler")
+	}
 	if o.GetAuthMeHandler == nil {
 		unregistered = append(unregistered, "GetAuthMeHandler")
 	}
@@ -283,6 +299,14 @@ func (o *ParkingsAuthAPI) initHandlerCache() {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
 
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/auth/google/callback"] = NewGetAuthGoogleCallback(o.context, o.GetAuthGoogleCallbackHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/auth/google/login"] = NewGetAuthGoogleLogin(o.context, o.GetAuthGoogleLoginHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

@@ -90,6 +90,81 @@ func init() {
         }
       }
     },
+    "/auth/google/callback": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "summary": "Handle Google OAuth callback",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Authorization code from Google",
+            "name": "code",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "State parameter for CSRF protection",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Error from OAuth provider",
+            "name": "error",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "token": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirect to frontend with token"
+          },
+          "401": {
+            "description": "Authentication failed",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/auth/google/login": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "summary": "Initiate Google OAuth login",
+        "responses": {
+          "302": {
+            "description": "Redirect to Google OAuth"
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "consumes": [
@@ -229,8 +304,7 @@ func init() {
                 "email",
                 "login",
                 "password",
-                "role",
-                "telegram_id"
+                "role"
               ],
               "properties": {
                 "email": {
@@ -250,6 +324,7 @@ func init() {
                   ]
                 },
                 "telegram_id": {
+                  "description": "Optional Telegram ID. Use 0 or omit if user doesn't have Telegram.",
                   "type": "integer"
                 }
               }
@@ -368,6 +443,81 @@ func init() {
         }
       }
     },
+    "/auth/google/callback": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "summary": "Handle Google OAuth callback",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Authorization code from Google",
+            "name": "code",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "State parameter for CSRF protection",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Error from OAuth provider",
+            "name": "error",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "token": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirect to frontend with token"
+          },
+          "401": {
+            "description": "Authentication failed",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/auth/google/login": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "summary": "Initiate Google OAuth login",
+        "responses": {
+          "302": {
+            "description": "Redirect to Google OAuth"
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "consumes": [
@@ -507,8 +657,7 @@ func init() {
                 "email",
                 "login",
                 "password",
-                "role",
-                "telegram_id"
+                "role"
               ],
               "properties": {
                 "email": {
@@ -528,6 +677,7 @@ func init() {
                   ]
                 },
                 "telegram_id": {
+                  "description": "Optional Telegram ID. Use 0 or omit if user doesn't have Telegram.",
                   "type": "integer"
                 }
               }

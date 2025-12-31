@@ -15,6 +15,8 @@ const createApiClient = (baseURL) => {
       const token = getAuthToken()
       if (token) {
         config.headers['api_key'] = token
+      } else {
+        console.warn('API request: no token found in cookies', config.url)
       }
       return config
     },

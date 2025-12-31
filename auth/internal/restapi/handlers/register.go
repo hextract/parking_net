@@ -23,7 +23,7 @@ func (h *Handler) RegisterHandler(api operations.PostAuthRegisterParams) middlew
 	traceID := fmt.Sprintf("%s", span.SpanContext().TraceID())
 
 	if api.Body.Login == nil || api.Body.Email == nil || api.Body.Password == nil ||
-		api.Body.Role == nil || api.Body.TelegramID == nil {
+		api.Body.Role == nil {
 		errCode := int64(operations.PostAuthRegisterConflictCode)
 		slog.Error(
 			"failed register new user",
@@ -55,7 +55,7 @@ func (h *Handler) RegisterHandler(api operations.PostAuthRegisterParams) middlew
 			slog.Group("user-properties",
 				slog.String("login", *api.Body.Login),
 				slog.String("email", *api.Body.Email),
-				slog.Int("telegram-id", int(*api.Body.TelegramID)),
+				slog.Int("telegram-id", int(api.Body.TelegramID)),
 			),
 			slog.Int("status_code", operations.PostAuthRegisterConflictCode),
 			slog.String("error", "registration failed"),
@@ -76,7 +76,7 @@ func (h *Handler) RegisterHandler(api operations.PostAuthRegisterParams) middlew
 		slog.Group("user-properties",
 			slog.String("login", *api.Body.Login),
 			slog.String("email", *api.Body.Email),
-			slog.Int("telegram-id", int(*api.Body.TelegramID)),
+			slog.Int("telegram-id", int(api.Body.TelegramID)),
 		),
 		slog.Int("status_code", operations.PostAuthRegisterOKCode),
 	)

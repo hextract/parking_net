@@ -18,11 +18,8 @@ func CreateUser(ctx context.Context, clt *client.Client, fields operations.PostA
 		return nil, fmt.Errorf("required fields are missing")
 	}
 
-	// Set default telegram_id to 0 if not provided (optional field)
-	telegramID := int64(0)
-	if fields.TelegramID != nil {
-		telegramID = *fields.TelegramID
-	}
+	// TelegramID is optional, defaults to 0 if not provided
+	telegramID := fields.TelegramID
 
 	if err := utils.ValidateLogin(*fields.Login); err != nil {
 		return nil, fmt.Errorf("invalid login: %v", err)

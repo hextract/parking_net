@@ -113,6 +113,8 @@ API Endpoints:
 - `POST /register` - New user registration
 - `POST /change-password` - Password modification
 - `GET /user` - Get user information (admin only)
+- `GET /google/login` - Initiate Google OAuth login (redirects to Google)
+- `GET /google/callback` - Handle Google OAuth callback
 - `GET /metrics` - Prometheus metrics
 
 Database: Uses Keycloak's database for user management
@@ -480,6 +482,13 @@ Key environment variables (see `.env-example` for complete list):
 **Internal Service Authentication:**
 - `INTERNAL_SERVICE_TOKEN`: Token for inter-service gRPC communication
 
+**Google OAuth Configuration (optional):**
+- `GOOGLE_OAUTH_CLIENT_ID`: Google OAuth application client ID
+- `GOOGLE_OAUTH_CLIENT_SECRET`: Google OAuth application client secret
+- `GOOGLE_OAUTH_REDIRECT_URI`: OAuth callback URL (default: http://localhost:8800/auth/google/callback)
+- `FRONTEND_URL`: Frontend URL for OAuth redirect (default: http://localhost:3000)
+- `AUTH_SERVICE_URL`: Auth service URL (default: http://auth:8800)
+
 **Domain Configuration (for HTTPS setup):**
 - `FRONTEND_DOMAIN`: Frontend domain (e.g., parking-net.space)
 - `BACKEND_DOMAIN`: Backend domain (e.g., backend.parking-net.space)
@@ -513,6 +522,55 @@ Keycloak is pre-configured with a realm export (`keycloak/config/realm-export.js
 - Roles: `driver`, `owner`, `admin`
 
 The setup service automatically configures the client secret from your `.env` file.
+
+### Google OAuth Setup
+
+The system supports Google OAuth as an alternative authentication method. To enable it:
+
+1. **Register a Google OAuth Application:**
+   - Go to https://console.cloud.google.com/apis/credentials
+   - Create a new OAuth 2.0 Client ID
+   - Set the authorized redirect URI to: `https://keycloak.backend.parking-net.space/realms/parking-users/broker/google/endpoint` (or your Keycloak broker endpoint)
+   - Copy the Client ID and Client Secret
+
+2. **Configure Environment Variables:**
+   Add to your `.env` file:
+   ```bash
+   GOOGLE_OAUTH_CLIENT_ID=your-google-client-id
+   GOOGLE_OAUTH_CLIENT_SECRET=your-google-client-secret
+   GOOGLE_OAUTH_REDIRECT_URI=http://localhost:8800/auth/google/callback
+   FRONTEND_URL=http://localhost:3000
+   ```
+
+3. **Automatic Setup:**
+   The setup script automatically configures Google as an Identity Provider in Keycloak when the credentials are provided. If credentials are not set, Google OAuth is skipped.
+
+4. **Usage:**
+   Users can click "Login with Google" on the login page. The OAuth flow will:
+   - Redirect to Google for authentication
+   - Return to Keycloak with an authorization code
+   - Exchange the code for a token via Keycloak
+   - Redirect to the frontend with the token
+
+**Note:** After adding Google OAuth endpoints to Swagger, you need to:
+
+1. **Generate API Code:**
+   ```bash
+   cd auth
+   make swagger_generate
+   ```
+
+2. **Register Handlers:**
+   After code generation, add these lines in `auth/internal/restapi/configure_parkings_auth.go` in the `configureAPI` function:
+   ```go
+   api.GetAuthGoogleLoginHandler = operations.GetAuthGoogleLoginHandlerFunc(authHandler.GoogleLoginHandler)
+   api.GetAuthGoogleCallbackHandler = operations.GetAuthGoogleCallbackHandlerFunc(authHandler.GoogleCallbackHandler)
+   ```
+
+3. **Restart Services:**
+   ```bash
+   docker-compose restart auth-svc
+   ```
 
 ### Service Communication
 
@@ -894,6 +952,7 @@ BACKEND_IP=158.160.131.173
    Update config file:
    - Replace placeholders with actual values from `.env`
    - Update proxy_pass ports to match your service ports
+   - Ensure the Keycloak subdomain server block is included (it should proxy to `localhost:${KEYCLOAK_PORT}`)
 
 3. Test and Reload Nginx:
    ```bash

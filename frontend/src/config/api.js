@@ -7,6 +7,7 @@ export const API_ENDPOINTS = {
     REGISTER: '/auth/register',
     CHANGE_PASSWORD: '/auth/change-password',
     ME: '/auth/me',
+    GOOGLE_LOGIN: '/auth/google/login',
   },
   PARKING: {
     BASE: API_BASE_URL,

@@ -115,6 +115,36 @@ export const AuthProvider = ({ children }) => {
     setUser(null)
   }
 
+  const setAuthData = async (token) => {
+    authService.setAuthData(token)
+    setToken(token)
+    
+    // Wait a bit for cookie to be set
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // Verify token was saved
+    const savedToken = authService.getStoredToken()
+    if (!savedToken || savedToken !== token) {
+      console.error('Token was not saved correctly', { saved: !!savedToken, matches: savedToken === token })
+      return { success: false, error: 'Failed to save authentication token' }
+    }
+    
+    try {
+      const userInfo = await authService.getUserInfo()
+      if (userInfo) {
+        setUser(userInfo)
+        return { success: true, user: userInfo }
+      } else {
+        console.error('Failed to fetch user info: userInfo is null')
+        return { success: false, error: 'Failed to fetch user info' }
+      }
+    } catch (error) {
+      console.error('Failed to fetch user info:', error)
+      console.error('Error response:', error.response?.data)
+      return { success: false, error: error.message || 'Failed to authenticate' }
+    }
+  }
+
   const changePassword = async (passwordData) => {
     try {
       const response = await authService.changePassword(passwordData)
@@ -154,6 +184,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     changePassword,
     refreshUserInfo,
+    setAuthData,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

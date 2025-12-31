@@ -20,9 +20,19 @@ export const authService = {
 
   getUserInfo: async () => {
     try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error('getUserInfo: no token in cookies')
+        return null
+      }
       const response = await authApi.get(API_ENDPOINTS.AUTH.ME || '/auth/me')
       return response.data
     } catch (error) {
+      console.error('getUserInfo: request failed', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      })
       return null
     }
   },

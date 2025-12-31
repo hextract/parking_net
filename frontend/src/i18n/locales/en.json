@@ -23,7 +23,9 @@
     "telegramBotDescription": "Chat with our bot",
     "telegramBotInstructions": "to get your Telegram ID automatically.",
     "telegramOptional": "You can skip this field if you don't have Telegram.",
-    "telegramIdPlaceholder": "Leave empty if you don't have Telegram"
+    "telegramIdPlaceholder": "Leave empty if you don't have Telegram",
+    "loginWithGoogle": "Login with Google",
+    "orContinueWith": "Or continue with"
   },
   "roles": {
     "driver": "Driver",

@@ -57,16 +57,63 @@ fi
 
 echo "Found client ID: $CLIENT_ID"
 
+BACKEND_DOMAIN="${BACKEND_DOMAIN:-backend.parking-net.space}"
+AUTH_SERVICE_URL="${AUTH_SERVICE_URL:-http://auth:8800}"
+GOOGLE_REDIRECT_URI="${GOOGLE_OAUTH_REDIRECT_URI:-}"
+
+if [ -z "$GOOGLE_REDIRECT_URI" ]; then
+    if [ -n "$BACKEND_DOMAIN" ] && [[ "$BACKEND_DOMAIN" != "localhost"* ]] && [[ "$BACKEND_DOMAIN" != "127.0.0.1"* ]]; then
+        GOOGLE_REDIRECT_URI="https://${BACKEND_DOMAIN}/auth/google/callback"
+    else
+        GOOGLE_REDIRECT_URI="${AUTH_SERVICE_URL}/auth/google/callback"
+    fi
+fi
+
+FRONTEND_URL="${FRONTEND_URL:-http://localhost:3000}"
+FRONTEND_CALLBACK="${FRONTEND_URL}/auth/callback"
+
+echo "Configuring client secret and redirect URIs..."
+echo "Google redirect URI: $GOOGLE_REDIRECT_URI"
+echo "Frontend callback: $FRONTEND_CALLBACK"
+
+echo "Updating client configuration..."
 docker exec "$KC_CONTAINER" bash -c \
     "export KC_ADMIN='$KC_ADMIN_USER' KC_ADMIN_PASSWORD='$KC_ADMIN_PASS' && \
      /opt/keycloak/bin/kcadm.sh config credentials \
      --server $KC_SERVER \
      --realm master \
      --user '$KC_ADMIN_USER' \
-     --password '$KC_ADMIN_PASS' >/dev/null 2>&1 && \
+     --password '$KC_ADMIN_PASS' && \
      /opt/keycloak/bin/kcadm.sh update clients/$CLIENT_ID \
      -r $KC_REALM \
-     -s secret='$KC_CLIENT_SECRET'" >/dev/null 2>&1
+     -s secret='$KC_CLIENT_SECRET' \
+     -s 'redirectUris=[\"$GOOGLE_REDIRECT_URI\",\"http://localhost:8800/auth/google/callback\",\"$FRONTEND_CALLBACK\"]' \
+     -s 'webOrigins=[\"+\"]'"
 
-echo "Client secret configured successfully"
+UPDATE_RESULT=$?
+
+if [ $UPDATE_RESULT -ne 0 ]; then
+    echo "WARNING: First attempt failed (exit code: $UPDATE_RESULT), trying alternative method..."
+    docker exec "$KC_CONTAINER" bash -c \
+        "export KC_ADMIN='$KC_ADMIN_USER' KC_ADMIN_PASSWORD='$KC_ADMIN_PASS' && \
+         /opt/keycloak/bin/kcadm.sh config credentials \
+         --server $KC_SERVER \
+         --realm master \
+         --user '$KC_ADMIN_USER' \
+         --password '$KC_ADMIN_PASS' && \
+         /opt/keycloak/bin/kcadm.sh update clients/$CLIENT_ID \
+         -r $KC_REALM \
+         -s secret='$KC_CLIENT_SECRET' \
+         -s 'redirectUris[0]'='$GOOGLE_REDIRECT_URI' \
+         -s 'redirectUris[1]'='http://localhost:8800/auth/google/callback' \
+         -s 'redirectUris[2]'='$FRONTEND_CALLBACK' \
+         -s 'webOrigins[0]'='+'"
+    
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Both methods failed. Please run scripts/fix_keycloak_redirect.sh manually"
+        exit 1
+    fi
+fi
+
+echo "Client secret and redirect URIs configured successfully"
 echo "Setup complete!"

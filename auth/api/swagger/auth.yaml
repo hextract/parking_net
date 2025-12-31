@@ -164,6 +164,57 @@ paths:
           schema:
             $ref: "#/definitions/Error"
           description: "Unauthorized"
+  /auth/google/login:
+    get:
+      summary: "Initiate Google OAuth login"
+      produces:
+        - "application/json"
+      responses:
+        302:
+          description: "Redirect to Google OAuth"
+        500:
+          schema:
+            $ref: "#/definitions/Error"
+          description: "Internal server error"
+  /auth/google/callback:
+    get:
+      summary: "Handle Google OAuth callback"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "query"
+          name: "code"
+          type: "string"
+          required: false
+          description: "Authorization code from Google"
+        - in: "query"
+          name: "state"
+          type: "string"
+          required: false
+          description: "State parameter for CSRF protection"
+        - in: "query"
+          name: "error"
+          type: "string"
+          required: false
+          description: "Error from OAuth provider"
+      responses:
+        200:
+          description: "Success"
+          schema:
+            type: "object"
+            properties:
+              token:
+                type: "string"
+        302:
+          description: "Redirect to frontend with token"
+        401:
+          schema:
+            $ref: "#/definitions/Error"
+          description: "Authentication failed"
+        500:
+          schema:
+            $ref: "#/definitions/Error"
+          description: "Internal server error"
   /auth/metrics:
     get:
       summary: "Prometheus metrics"

@@ -20,6 +20,14 @@ echo "Running service setup..."
 bash "$SCRIPT_DIR/setup_services.sh"
 
 echo ""
+echo "Setting up Keycloak client secret..."
+bash "$SCRIPT_DIR/setup_keycloak.sh"
+
+echo ""
+echo "Setting up Google Identity Provider..."
+bash "$SCRIPT_DIR/setup_google_idp.sh"
+
+echo ""
 echo "=========================================="
 echo "Setup complete!"
 echo "=========================================="
