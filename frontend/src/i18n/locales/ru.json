@@ -24,7 +24,7 @@
     "telegramBotInstructions": "чтобы автоматически получить ваш Telegram ID.",
     "telegramOptional": "Вы можете пропустить это поле, если у вас нет Telegram.",
     "telegramIdPlaceholder": "Оставьте пустым, если у вас нет Telegram",
-    "loginWithGoogle": "Войти через Google",
+    "loginWithGoogle": "Войти водителем через Google",
     "orContinueWith": "Или продолжить с"
   },
   "roles": {
@@ -95,7 +95,19 @@
     "confirmDelete": "Вы уверены, что хотите удалить эту парковку?",
     "noParkingsYet": "Парковок пока нет",
     "createFirst": "Создайте первую парковку для начала работы",
-    "hourlyRateHint": "Цена за час в долларах (например, 10.50)"
+    "hourlyRateHint": "Цена за час в долларах (например, 10.50)",
+    "services": "Услуги",
+    "manageServices": "Управление услугами",
+    "addService": "Добавить услугу",
+    "editService": "Редактировать услугу",
+    "deleteService": "Удалить услугу",
+    "serviceName": "Название услуги",
+    "serviceDescription": "Описание",
+    "servicePrice": "Цена",
+    "noServices": "Услуг пока нет",
+    "addFirstService": "Добавьте первую услугу",
+    "confirmDeleteService": "Вы уверены, что хотите удалить эту услугу?",
+    "servicePriceHint": "Цена в долларах (например, 15.00)"
   },
   "parkingTypes": {
     "outdoor": "Открытая",
@@ -132,7 +144,11 @@
     "cancel": "Отменить",
     "errorPastDate": "Дата и время начала не могут быть в прошлом",
     "errorEndBeforeStart": "Дата и время окончания должны быть после даты и времени начала",
-    "errorMinimumDuration": "Бронирование должно быть не менее 1 часа"
+    "errorMinimumDuration": "Бронирование должно быть не менее 1 часа",
+    "selectServices": "Дополнительные услуги",
+    "servicesCost": "Стоимость услуг",
+    "parkingCost": "Стоимость парковки",
+    "quantity": "Количество"
   },
   "bookingStatus": {
     "Waiting": "Ожидание",

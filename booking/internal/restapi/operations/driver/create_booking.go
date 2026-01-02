@@ -8,6 +8,7 @@ package driver
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime/middleware"
@@ -95,6 +96,9 @@ type CreateBookingBody struct {
 	// parking place id
 	// Required: true
 	ParkingPlaceID *int64 `json:"parking_place_id"`
+
+	// services
+	Services []*models.BookingService `json:"services"`
 }
 
 // Validate validates this create booking body
@@ -110,6 +114,10 @@ func (o *CreateBookingBody) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := o.validateParkingPlaceID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.validateServices(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -154,8 +162,68 @@ func (o *CreateBookingBody) validateParkingPlaceID(formats strfmt.Registry) erro
 	return nil
 }
 
-// ContextValidate validates this create booking body based on context it is used
+func (o *CreateBookingBody) validateServices(formats strfmt.Registry) error {
+	if swag.IsZero(o.Services) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(o.Services); i++ {
+		if swag.IsZero(o.Services[i]) { // not required
+			continue
+		}
+
+		if o.Services[i] != nil {
+			if err := o.Services[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("object" + "." + "services" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("object" + "." + "services" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this create booking body based on the context it is used
 func (o *CreateBookingBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.contextValidateServices(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *CreateBookingBody) contextValidateServices(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(o.Services); i++ {
+
+		if o.Services[i] != nil {
+
+			if swag.IsZero(o.Services[i]) { // not required
+				return nil
+			}
+
+			if err := o.Services[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("object" + "." + "services" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("object" + "." + "services" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 

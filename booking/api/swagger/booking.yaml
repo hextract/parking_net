@@ -181,6 +181,10 @@ paths:
                 type: "string"
                 format: "date-time"
                 example: "2024-12-31T18:00:00Z"
+              services:
+                type: "array"
+                items:
+                  $ref: "#/definitions/BookingService"
       responses:
         200:
           description: "successful operation"
@@ -251,6 +255,24 @@ definitions:
           - "Canceled"
       user_id:
         type: "string"
+      services:
+        type: "array"
+        items:
+          $ref: "#/definitions/BookingService"
+  BookingService:
+    type: "object"
+    required:
+      - "service_id"
+      - "quantity"
+    properties:
+      service_id:
+        type: "integer"
+        format: "int64"
+      quantity:
+        type: "integer"
+        format: "int64"
+        default: 1
+        minimum: 1
   Error:
     type: "object"
     required:

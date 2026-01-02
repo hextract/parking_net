@@ -89,6 +89,12 @@ func configureAPI(api *operations.ParkingsParkingAPI) http.Handler {
 	api.ParkingUpdateParkingHandler = parking.UpdateParkingHandlerFunc(container.ParkingHandler.UpdateParking)
 	api.ParkingDeleteParkingHandler = parking.DeleteParkingHandlerFunc(container.ParkingHandler.DeleteParking)
 
+	api.ParkingCreateParkingServiceHandler = parking.CreateParkingServiceHandlerFunc(container.ServiceHandler.CreateService)
+	api.ParkingGetParkingServiceHandler = parking.GetParkingServiceHandlerFunc(container.ServiceHandler.GetService)
+	api.ParkingGetParkingServicesHandler = parking.GetParkingServicesHandlerFunc(container.ServiceHandler.GetServices)
+	api.ParkingUpdateParkingServiceHandler = parking.UpdateParkingServiceHandlerFunc(container.ServiceHandler.UpdateService)
+	api.ParkingDeleteParkingServiceHandler = parking.DeleteParkingServiceHandlerFunc(container.ServiceHandler.DeleteService)
+
 	api.PreServerShutdown = func() {}
 	api.ServerShutdown = func() {}
 

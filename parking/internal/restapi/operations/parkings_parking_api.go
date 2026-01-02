@@ -52,17 +52,32 @@ func NewParkingsParkingAPI(spec *loads.Document) *ParkingsParkingAPI {
 		ParkingCreateParkingHandler: parking.CreateParkingHandlerFunc(func(params parking.CreateParkingParams, principal *models.User) middleware.Responder {
 			return middleware.NotImplemented("operation parking.CreateParking has not yet been implemented")
 		}),
+		ParkingCreateParkingServiceHandler: parking.CreateParkingServiceHandlerFunc(func(params parking.CreateParkingServiceParams, principal *models.User) middleware.Responder {
+			return middleware.NotImplemented("operation parking.CreateParkingService has not yet been implemented")
+		}),
 		ParkingDeleteParkingHandler: parking.DeleteParkingHandlerFunc(func(params parking.DeleteParkingParams, principal *models.User) middleware.Responder {
 			return middleware.NotImplemented("operation parking.DeleteParking has not yet been implemented")
 		}),
+		ParkingDeleteParkingServiceHandler: parking.DeleteParkingServiceHandlerFunc(func(params parking.DeleteParkingServiceParams, principal *models.User) middleware.Responder {
+			return middleware.NotImplemented("operation parking.DeleteParkingService has not yet been implemented")
+		}),
 		ParkingGetParkingByIDHandler: parking.GetParkingByIDHandlerFunc(func(params parking.GetParkingByIDParams) middleware.Responder {
 			return middleware.NotImplemented("operation parking.GetParkingByID has not yet been implemented")
+		}),
+		ParkingGetParkingServiceHandler: parking.GetParkingServiceHandlerFunc(func(params parking.GetParkingServiceParams, principal *models.User) middleware.Responder {
+			return middleware.NotImplemented("operation parking.GetParkingService has not yet been implemented")
+		}),
+		ParkingGetParkingServicesHandler: parking.GetParkingServicesHandlerFunc(func(params parking.GetParkingServicesParams, principal *models.User) middleware.Responder {
+			return middleware.NotImplemented("operation parking.GetParkingServices has not yet been implemented")
 		}),
 		ParkingGetParkingsHandler: parking.GetParkingsHandlerFunc(func(params parking.GetParkingsParams) middleware.Responder {
 			return middleware.NotImplemented("operation parking.GetParkings has not yet been implemented")
 		}),
 		ParkingUpdateParkingHandler: parking.UpdateParkingHandlerFunc(func(params parking.UpdateParkingParams, principal *models.User) middleware.Responder {
 			return middleware.NotImplemented("operation parking.UpdateParking has not yet been implemented")
+		}),
+		ParkingUpdateParkingServiceHandler: parking.UpdateParkingServiceHandlerFunc(func(params parking.UpdateParkingServiceParams, principal *models.User) middleware.Responder {
+			return middleware.NotImplemented("operation parking.UpdateParkingService has not yet been implemented")
 		}),
 
 		// Applies when the "api_key" header is set
@@ -118,14 +133,24 @@ type ParkingsParkingAPI struct {
 	InstrumentsGetMetricsHandler instruments.GetMetricsHandler
 	// ParkingCreateParkingHandler sets the operation handler for the create parking operation
 	ParkingCreateParkingHandler parking.CreateParkingHandler
+	// ParkingCreateParkingServiceHandler sets the operation handler for the create parking service operation
+	ParkingCreateParkingServiceHandler parking.CreateParkingServiceHandler
 	// ParkingDeleteParkingHandler sets the operation handler for the delete parking operation
 	ParkingDeleteParkingHandler parking.DeleteParkingHandler
+	// ParkingDeleteParkingServiceHandler sets the operation handler for the delete parking service operation
+	ParkingDeleteParkingServiceHandler parking.DeleteParkingServiceHandler
 	// ParkingGetParkingByIDHandler sets the operation handler for the get parking by id operation
 	ParkingGetParkingByIDHandler parking.GetParkingByIDHandler
+	// ParkingGetParkingServiceHandler sets the operation handler for the get parking service operation
+	ParkingGetParkingServiceHandler parking.GetParkingServiceHandler
+	// ParkingGetParkingServicesHandler sets the operation handler for the get parking services operation
+	ParkingGetParkingServicesHandler parking.GetParkingServicesHandler
 	// ParkingGetParkingsHandler sets the operation handler for the get parkings operation
 	ParkingGetParkingsHandler parking.GetParkingsHandler
 	// ParkingUpdateParkingHandler sets the operation handler for the update parking operation
 	ParkingUpdateParkingHandler parking.UpdateParkingHandler
+	// ParkingUpdateParkingServiceHandler sets the operation handler for the update parking service operation
+	ParkingUpdateParkingServiceHandler parking.UpdateParkingServiceHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -213,17 +238,32 @@ func (o *ParkingsParkingAPI) Validate() error {
 	if o.ParkingCreateParkingHandler == nil {
 		unregistered = append(unregistered, "parking.CreateParkingHandler")
 	}
+	if o.ParkingCreateParkingServiceHandler == nil {
+		unregistered = append(unregistered, "parking.CreateParkingServiceHandler")
+	}
 	if o.ParkingDeleteParkingHandler == nil {
 		unregistered = append(unregistered, "parking.DeleteParkingHandler")
 	}
+	if o.ParkingDeleteParkingServiceHandler == nil {
+		unregistered = append(unregistered, "parking.DeleteParkingServiceHandler")
+	}
 	if o.ParkingGetParkingByIDHandler == nil {
 		unregistered = append(unregistered, "parking.GetParkingByIDHandler")
+	}
+	if o.ParkingGetParkingServiceHandler == nil {
+		unregistered = append(unregistered, "parking.GetParkingServiceHandler")
+	}
+	if o.ParkingGetParkingServicesHandler == nil {
+		unregistered = append(unregistered, "parking.GetParkingServicesHandler")
 	}
 	if o.ParkingGetParkingsHandler == nil {
 		unregistered = append(unregistered, "parking.GetParkingsHandler")
 	}
 	if o.ParkingUpdateParkingHandler == nil {
 		unregistered = append(unregistered, "parking.UpdateParkingHandler")
+	}
+	if o.ParkingUpdateParkingServiceHandler == nil {
+		unregistered = append(unregistered, "parking.UpdateParkingServiceHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -332,14 +372,30 @@ func (o *ParkingsParkingAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/parking"] = parking.NewCreateParking(o.context, o.ParkingCreateParkingHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/parking/{parking_id}/services"] = parking.NewCreateParkingService(o.context, o.ParkingCreateParkingServiceHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/parking/{parking_id}"] = parking.NewDeleteParking(o.context, o.ParkingDeleteParkingHandler)
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/parking/{parking_id}/services/{service_id}"] = parking.NewDeleteParkingService(o.context, o.ParkingDeleteParkingServiceHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/parking/{parking_id}"] = parking.NewGetParkingByID(o.context, o.ParkingGetParkingByIDHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/parking/{parking_id}/services/{service_id}"] = parking.NewGetParkingService(o.context, o.ParkingGetParkingServiceHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/parking/{parking_id}/services"] = parking.NewGetParkingServices(o.context, o.ParkingGetParkingServicesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -348,6 +404,10 @@ func (o *ParkingsParkingAPI) initHandlerCache() {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
 	o.handlers["PUT"]["/parking/{parking_id}"] = parking.NewUpdateParking(o.context, o.ParkingUpdateParkingHandler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/parking/{parking_id}/services/{service_id}"] = parking.NewUpdateParkingService(o.context, o.ParkingUpdateParkingServiceHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

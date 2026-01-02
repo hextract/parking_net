@@ -8,6 +8,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -42,6 +43,9 @@ type Booking struct {
 	// Required: true
 	ParkingPlaceID *int64 `json:"parking_place_id"`
 
+	// services
+	Services []*BookingService `json:"services"`
+
 	// status of booking
 	// Enum: ["Waiting","Confirmed","Canceled"]
 	Status string `json:"status,omitempty"`
@@ -63,6 +67,10 @@ func (m *Booking) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateParkingPlaceID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateServices(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -106,6 +114,32 @@ func (m *Booking) validateParkingPlaceID(formats strfmt.Registry) error {
 
 	if err := validate.Required("parking_place_id", "body", m.ParkingPlaceID); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Booking) validateServices(formats strfmt.Registry) error {
+	if swag.IsZero(m.Services) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Services); i++ {
+		if swag.IsZero(m.Services[i]) { // not required
+			continue
+		}
+
+		if m.Services[i] != nil {
+			if err := m.Services[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("services" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("services" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -156,8 +190,42 @@ func (m *Booking) validateStatus(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validates this booking based on context it is used
+// ContextValidate validate this booking based on the context it is used
 func (m *Booking) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateServices(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *Booking) contextValidateServices(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Services); i++ {
+
+		if m.Services[i] != nil {
+
+			if swag.IsZero(m.Services[i]) { // not required
+				return nil
+			}
+
+			if err := m.Services[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("services" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("services" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 

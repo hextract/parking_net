@@ -24,7 +24,7 @@
     "telegramBotInstructions": "to get your Telegram ID automatically.",
     "telegramOptional": "You can skip this field if you don't have Telegram.",
     "telegramIdPlaceholder": "Leave empty if you don't have Telegram",
-    "loginWithGoogle": "Login with Google",
+    "loginWithGoogle": "Login driver with Google",
     "orContinueWith": "Or continue with"
   },
   "roles": {
@@ -95,7 +95,19 @@
     "confirmDelete": "Are you sure you want to delete this parking?",
     "noParkingsYet": "No parkings yet",
     "createFirst": "Create your first parking place to get started",
-    "hourlyRateHint": "Price per hour in dollars (e.g., 10.50)"
+    "hourlyRateHint": "Price per hour in dollars (e.g., 10.50)",
+    "services": "Services",
+    "manageServices": "Manage Services",
+    "addService": "Add Service",
+    "editService": "Edit Service",
+    "deleteService": "Delete Service",
+    "serviceName": "Service Name",
+    "serviceDescription": "Description",
+    "servicePrice": "Price",
+    "noServices": "No services yet",
+    "addFirstService": "Add your first service",
+    "confirmDeleteService": "Are you sure you want to delete this service?",
+    "servicePriceHint": "Price in dollars (e.g., 15.00)"
   },
   "parkingTypes": {
     "outdoor": "Outdoor",
@@ -132,7 +144,11 @@
     "cancel": "Cancel",
     "errorPastDate": "Start date and time cannot be in the past",
     "errorEndBeforeStart": "End date and time must be after start date and time",
-    "errorMinimumDuration": "Booking must be at least 1 hour"
+    "errorMinimumDuration": "Booking must be at least 1 hour",
+    "selectServices": "Additional Services",
+    "servicesCost": "Services Cost",
+    "parkingCost": "Parking Cost",
+    "quantity": "Quantity"
   },
   "bookingStatus": {
     "Waiting": "Waiting",

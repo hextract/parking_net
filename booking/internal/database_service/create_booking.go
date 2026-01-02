@@ -7,6 +7,7 @@ import (
 	"github.com/h4x4d/parking_net/booking/internal/grpc/client"
 	"github.com/h4x4d/parking_net/booking/internal/models"
 	"github.com/h4x4d/parking_net/booking/internal/utils"
+	"github.com/jackc/pgx/v5"
 	"go.opentelemetry.io/otel"
 	"strings"
 	"time"
@@ -57,7 +58,7 @@ func (ds *DatabaseService) CreateBooking(booking *models.Booking) (*int64, error
 	return &booking.BookingID, errInsert
 }
 
-func (ds *DatabaseService) Create(ctx context.Context, dateFrom *strfmt.DateTime, dateTo *strfmt.DateTime, parkingPlaceID *int64, userID string) (*int64, error) {
+func (ds *DatabaseService) Create(ctx context.Context, dateFrom *strfmt.DateTime, dateTo *strfmt.DateTime, parkingPlaceID *int64, userID string, services []BookingService) (*int64, error) {
 	if err := utils.ValidateUserID(userID); err != nil {
 		return nil, fmt.Errorf("invalid user ID")
 	}
@@ -87,7 +88,47 @@ func (ds *DatabaseService) Create(ctx context.Context, dateFrom *strfmt.DateTime
 
 	hours := dTo.Sub(dFrom).Hours()
 	cost := int64(float64(parkingPlace.HourlyRate) * hours)
-	if err := utils.ValidateFullCost(cost); err != nil {
+
+	servicesCost := int64(0)
+	if len(services) > 0 && ds.parkingPool != nil {
+		for i := range services {
+			query := `SELECT id, parking_id, name, description, price
+				FROM services WHERE id = $1`
+			
+			var serviceInfo struct {
+				ID          int64
+				ParkingID   int64
+				Name        string
+				Description string
+				Price       int64
+			}
+			
+			err := ds.parkingPool.QueryRow(ctx, query, services[i].ServiceID).Scan(
+				&serviceInfo.ID,
+				&serviceInfo.ParkingID,
+				&serviceInfo.Name,
+				&serviceInfo.Description,
+				&serviceInfo.Price,
+			)
+			
+			if err != nil {
+				if err == pgx.ErrNoRows {
+					return nil, fmt.Errorf("service %d not found", services[i].ServiceID)
+				}
+				return nil, fmt.Errorf("failed to get service %d: %w", services[i].ServiceID, err)
+			}
+			
+			if serviceInfo.ParkingID != *parkingPlaceID {
+				return nil, fmt.Errorf("service %d does not belong to parking place %d", services[i].ServiceID, *parkingPlaceID)
+			}
+			
+			services[i].Price = serviceInfo.Price
+			servicesCost += serviceInfo.Price * services[i].Quantity
+		}
+	}
+
+	totalCost := cost + servicesCost
+	if err := utils.ValidateFullCost(totalCost); err != nil {
 		return nil, fmt.Errorf("calculated cost exceeds maximum")
 	}
 
@@ -95,10 +136,22 @@ func (ds *DatabaseService) Create(ctx context.Context, dateFrom *strfmt.DateTime
 		DateFrom:        dateFrom,
 		DateTo:          dateTo,
 		ParkingPlaceID:  parkingPlaceID,
-		FullCost:        cost,
+		FullCost:        totalCost,
 		Status:          "Waiting",
 		UserID:          userID,
 	}
 
-	return ds.CreateBooking(booking)
+	bookingID, err := ds.CreateBooking(booking)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(services) > 0 {
+		err = ds.AddBookingServices(ctx, *bookingID, services)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add booking services: %w", err)
+		}
+	}
+
+	return bookingID, nil
 }

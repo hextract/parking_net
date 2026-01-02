@@ -35,6 +35,12 @@ if ! docker exec "$DB_CONTAINER" psql -U "${POSTGRES_USER:-postgres}" -d "$PARKI
         -f /docker-entrypoint-initdb.d/init_sql/init_parking.sql >/dev/null 2>&1 || true
 fi
 
+if ! docker exec "$DB_CONTAINER" psql -U "${POSTGRES_USER:-postgres}" -d "$PARKING_DB" -c "\dt" 2>/dev/null | grep -q "services"; then
+    echo "Creating services table..."
+    docker exec "$DB_CONTAINER" psql -U "${POSTGRES_USER:-postgres}" -d "$PARKING_DB" \
+        -f /docker-entrypoint-initdb.d/init_sql/init_services.sql >/dev/null 2>&1 || true
+fi
+
 if ! docker exec "$DB_CONTAINER" psql -U "${POSTGRES_USER:-postgres}" -d "$BOOKING_DB" -c "\dt" 2>/dev/null | grep -q "bookings"; then
     echo "Creating bookings table..."
     docker exec "$DB_CONTAINER" psql -U "${POSTGRES_USER:-postgres}" -d "$BOOKING_DB" \

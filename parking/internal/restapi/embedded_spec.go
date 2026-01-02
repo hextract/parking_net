@@ -299,6 +299,284 @@ func init() {
           }
         }
       }
+    },
+    "/parking/{parking_id}/services": {
+      "get": {
+        "security": [
+          {
+            "api_key": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "parking"
+        ],
+        "summary": "Get services for a parking place",
+        "operationId": "get_parking_services",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of parking place",
+            "name": "parking_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Service"
+              }
+            }
+          },
+          "404": {
+            "description": "Parking place not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "api_key": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "parking"
+        ],
+        "summary": "Create a service for a parking place",
+        "operationId": "create_parking_service",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of parking place",
+            "name": "parking_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "object",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Service"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Service"
+            }
+          },
+          "400": {
+            "description": "Incorrect data",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "No access",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Parking place not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/parking/{parking_id}/services/{service_id}": {
+      "get": {
+        "security": [
+          {
+            "api_key": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "parking"
+        ],
+        "summary": "Get service by ID",
+        "operationId": "get_parking_service",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of parking place",
+            "name": "parking_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of service",
+            "name": "service_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Service"
+            }
+          },
+          "404": {
+            "description": "Service not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "put": {
+        "security": [
+          {
+            "api_key": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "parking"
+        ],
+        "summary": "Update service",
+        "operationId": "update_parking_service",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of parking place",
+            "name": "parking_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of service",
+            "name": "service_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "object",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Service"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Service"
+            }
+          },
+          "400": {
+            "description": "Incorrect data",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "No access",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Service not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "api_key": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "parking"
+        ],
+        "summary": "Delete service",
+        "operationId": "delete_parking_service",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of parking place",
+            "name": "parking_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of service",
+            "name": "service_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Result"
+            }
+          },
+          "403": {
+            "description": "No access",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Service not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -373,6 +651,36 @@ func init() {
         },
         "status": {
           "type": "string"
+        }
+      }
+    },
+    "Service": {
+      "type": "object",
+      "required": [
+        "name",
+        "price"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "example": "Full car wash service"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "name": {
+          "type": "string",
+          "example": "Car Wash"
+        },
+        "parking_id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "price": {
+          "description": "Service price in cents",
+          "type": "integer",
+          "format": "int64"
         }
       }
     }
@@ -677,6 +985,284 @@ func init() {
           }
         }
       }
+    },
+    "/parking/{parking_id}/services": {
+      "get": {
+        "security": [
+          {
+            "api_key": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "parking"
+        ],
+        "summary": "Get services for a parking place",
+        "operationId": "get_parking_services",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of parking place",
+            "name": "parking_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Service"
+              }
+            }
+          },
+          "404": {
+            "description": "Parking place not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "api_key": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "parking"
+        ],
+        "summary": "Create a service for a parking place",
+        "operationId": "create_parking_service",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of parking place",
+            "name": "parking_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "object",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Service"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Service"
+            }
+          },
+          "400": {
+            "description": "Incorrect data",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "No access",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Parking place not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/parking/{parking_id}/services/{service_id}": {
+      "get": {
+        "security": [
+          {
+            "api_key": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "parking"
+        ],
+        "summary": "Get service by ID",
+        "operationId": "get_parking_service",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of parking place",
+            "name": "parking_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of service",
+            "name": "service_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Service"
+            }
+          },
+          "404": {
+            "description": "Service not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "put": {
+        "security": [
+          {
+            "api_key": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "parking"
+        ],
+        "summary": "Update service",
+        "operationId": "update_parking_service",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of parking place",
+            "name": "parking_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of service",
+            "name": "service_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "object",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Service"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Service"
+            }
+          },
+          "400": {
+            "description": "Incorrect data",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "No access",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Service not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "api_key": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "parking"
+        ],
+        "summary": "Delete service",
+        "operationId": "delete_parking_service",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of parking place",
+            "name": "parking_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of service",
+            "name": "service_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Result"
+            }
+          },
+          "403": {
+            "description": "No access",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Service not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -751,6 +1337,36 @@ func init() {
         },
         "status": {
           "type": "string"
+        }
+      }
+    },
+    "Service": {
+      "type": "object",
+      "required": [
+        "name",
+        "price"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "example": "Full car wash service"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "name": {
+          "type": "string",
+          "example": "Car Wash"
+        },
+        "parking_id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "price": {
+          "description": "Service price in cents",
+          "type": "integer",
+          "format": "int64"
         }
       }
     }

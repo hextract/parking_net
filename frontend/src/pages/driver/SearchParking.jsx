@@ -3,6 +3,7 @@ import { Search, MapPin, DollarSign, Car as CarIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { parkingService } from '../../services/parkingService'
 import { bookingService } from '../../services/bookingService'
+import { serviceService } from '../../services/serviceService'
 import { PARKING_TYPES } from '../../config/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { format } from 'date-fns'
@@ -25,6 +26,9 @@ const SearchParking = () => {
   const [bookingLoading, setBookingLoading] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [bookingError, setBookingError] = useState('')
+  const [services, setServices] = useState([])
+  const [servicesLoading, setServicesLoading] = useState(false)
+  const [selectedServices, setSelectedServices] = useState({})
 
   useEffect(() => {
     searchParkings()
@@ -54,6 +58,46 @@ const SearchParking = () => {
   const handleSearch = (e) => {
     e.preventDefault()
     searchParkings()
+  }
+
+  const loadServices = async (parkingId) => {
+    setServicesLoading(true)
+    try {
+      const data = await serviceService.getServices(parkingId)
+      setServices(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error('Failed to load services:', err)
+      setServices([])
+    } finally {
+      setServicesLoading(false)
+    }
+  }
+
+  const handleServiceToggle = (serviceId, quantity = 1) => {
+    setSelectedServices((prev) => {
+      const newSelected = { ...prev }
+      if (newSelected[serviceId]) {
+        delete newSelected[serviceId]
+      } else {
+        newSelected[serviceId] = quantity
+      }
+      return newSelected
+    })
+  }
+
+  const handleServiceQuantityChange = (serviceId, quantity) => {
+    if (quantity <= 0) {
+      setSelectedServices((prev) => {
+        const newSelected = { ...prev }
+        delete newSelected[serviceId]
+        return newSelected
+      })
+    } else {
+      setSelectedServices((prev) => ({
+        ...prev,
+        [serviceId]: quantity,
+      }))
+    }
   }
 
   const handleBooking = async (e) => {
@@ -93,16 +137,24 @@ const SearchParking = () => {
         return date.toISOString()
       }
 
+      const servicesArray = Object.entries(selectedServices).map(([serviceId, quantity]) => ({
+        service_id: parseInt(serviceId),
+        quantity: quantity,
+      }))
+
       const formattedData = {
         parking_place_id: selectedParking.id,
         date_from: formatDateToISO(bookingData.date_from),
         date_to: formatDateToISO(bookingData.date_to),
+        services: servicesArray,
       }
 
       await bookingService.createBooking(formattedData)
       setBookingSuccess(true)
       setSelectedParking(null)
       setBookingData({ date_from: '', date_to: '' })
+      setSelectedServices({})
+      setServices([])
       setBookingError('')
 
       setTimeout(() => {
@@ -250,7 +302,11 @@ const SearchParking = () => {
               </div>
 
               <button
-                onClick={() => setSelectedParking(parking)}
+                onClick={() => {
+                  setSelectedParking(parking)
+                  loadServices(parking.id)
+                  setSelectedServices({})
+                }}
                 className="btn-primary w-full"
               >
                 {t('booking.bookNow')}
@@ -307,6 +363,60 @@ const SearchParking = () => {
                 />
               </div>
 
+              {servicesLoading ? (
+                <div className="flex justify-center py-4">
+                  <LoadingSpinner size="small" />
+                </div>
+              ) : services.length > 0 && (
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('booking.selectServices')}</h3>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {services.map((service) => {
+                      const isSelected = selectedServices[service.id]
+                      const quantity = isSelected || 1
+                      return (
+                        <div key={service.id} className="flex items-center justify-between p-2 border border-gray-200 rounded">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                checked={!!isSelected}
+                                onChange={() => handleServiceToggle(service.id, quantity)}
+                                className="w-4 h-4 text-blue-600"
+                              />
+                              <span className="text-sm font-medium text-gray-900">{service.name}</span>
+                            </div>
+                            {service.description && (
+                              <p className="text-xs text-gray-500 ml-6 mt-1">{service.description}</p>
+                            )}
+                            <p className="text-sm font-semibold text-blue-600 ml-6">${((service.price || 0) / 100).toFixed(2)}</p>
+                          </div>
+                          {isSelected && (
+                            <div className="flex items-center space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => handleServiceQuantityChange(service.id, quantity - 1)}
+                                className="w-6 h-6 flex items-center justify-center border border-gray-300 rounded text-gray-600 hover:bg-gray-50"
+                              >
+                                -
+                              </button>
+                              <span className="w-8 text-center text-sm">{quantity}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleServiceQuantityChange(service.id, quantity + 1)}
+                                className="w-6 h-6 flex items-center justify-center border border-gray-300 rounded text-gray-600 hover:bg-gray-50"
+                              >
+                                +
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">{t('booking.hourlyRate')}:</span>
@@ -316,7 +426,14 @@ const SearchParking = () => {
                   const start = new Date(bookingData.date_from)
                   const end = new Date(bookingData.date_to)
                   const hours = Math.max(0, (end - start) / (1000 * 60 * 60))
-                  const estimatedCost = (Math.ceil(hours) * selectedParking.hourly_rate / 100).toFixed(2)
+                  const parkingCost = (Math.ceil(hours) * selectedParking.hourly_rate / 100)
+                  
+                  const servicesCost = Object.entries(selectedServices).reduce((total, [serviceId, quantity]) => {
+                    const service = services.find(s => s.id === parseInt(serviceId))
+                    return total + ((service?.price || 0) / 100) * quantity
+                  }, 0)
+                  
+                  const totalCost = (parkingCost + servicesCost).toFixed(2)
 
                   if (hours > 0) {
                     return (
@@ -325,9 +442,19 @@ const SearchParking = () => {
                           <span>{t('booking.duration')}:</span>
                           <span className="font-medium">{Math.ceil(hours)} {Math.ceil(hours) === 1 ? t('booking.hour') : t('booking.hours')}</span>
                         </div>
+                        <div className="flex items-center justify-between text-sm text-gray-600 mt-1">
+                          <span>{t('booking.parkingCost')}:</span>
+                          <span className="font-medium">${parkingCost.toFixed(2)}</span>
+                        </div>
+                        {servicesCost > 0 && (
+                          <div className="flex items-center justify-between text-sm text-gray-600 mt-1">
+                            <span>{t('booking.servicesCost')}:</span>
+                            <span className="font-medium">${servicesCost.toFixed(2)}</span>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-blue-300">
                           <span className="text-sm font-semibold text-gray-700">{t('booking.estimatedCost')}:</span>
-                          <span className="text-xl font-bold text-blue-700">${estimatedCost}</span>
+                          <span className="text-xl font-bold text-blue-700">${totalCost}</span>
                         </div>
                       </>
                     )
@@ -345,6 +472,8 @@ const SearchParking = () => {
                   onClick={() => {
                     setSelectedParking(null)
                     setBookingData({ date_from: '', date_to: '' })
+                    setSelectedServices({})
+                    setServices([])
                     setBookingError('')
                   }}
                   className="btn-secondary flex-1"

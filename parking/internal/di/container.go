@@ -13,6 +13,7 @@ import (
 
 type Container struct {
 	ParkingHandler *handlers.ParkingHandler
+	ServiceHandler *handlers.ServiceHandler
 }
 
 func NewContainer() (*Container, error) {
@@ -29,15 +30,24 @@ func NewContainer() (*Container, error) {
 		return nil, fmt.Errorf("failed to create database pool: %w", err)
 	}
 
-	repo := repository.NewPostgresParkingRepository(pool)
-	svc := service.NewParkingService(repo)
+	parkingRepo := repository.NewPostgresParkingRepository(pool)
+	parkingSvc := service.NewParkingService(parkingRepo)
 
-	parkingHandler, err := handlers.NewParkingHandler(svc)
+	parkingHandler, err := handlers.NewParkingHandler(parkingSvc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create parking handler: %w", err)
 	}
 
+	serviceRepo := repository.NewPostgresServiceRepository(pool)
+	serviceSvc := service.NewServiceService(serviceRepo, parkingRepo)
+
+	serviceHandler, err := handlers.NewServiceHandler(serviceSvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create service handler: %w", err)
+	}
+
 	return &Container{
 		ParkingHandler: parkingHandler,
+		ServiceHandler: serviceHandler,
 	}, nil
 }

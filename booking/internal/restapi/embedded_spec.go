@@ -124,6 +124,12 @@ func init() {
                 "parking_place_id": {
                   "type": "integer",
                   "format": "int64"
+                },
+                "services": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BookingService"
+                  }
                 }
               }
             }
@@ -357,6 +363,12 @@ func init() {
           "type": "integer",
           "format": "int64"
         },
+        "services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BookingService"
+          }
+        },
         "status": {
           "description": "status of booking",
           "type": "string",
@@ -368,6 +380,25 @@ func init() {
         },
         "user_id": {
           "type": "string"
+        }
+      }
+    },
+    "BookingService": {
+      "type": "object",
+      "required": [
+        "service_id",
+        "quantity"
+      ],
+      "properties": {
+        "quantity": {
+          "type": "integer",
+          "format": "int64",
+          "default": 1,
+          "minimum": 1
+        },
+        "service_id": {
+          "type": "integer",
+          "format": "int64"
         }
       }
     },
@@ -575,6 +606,12 @@ func init() {
                 "parking_place_id": {
                   "type": "integer",
                   "format": "int64"
+                },
+                "services": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BookingService"
+                  }
                 }
               }
             }
@@ -808,6 +845,12 @@ func init() {
           "type": "integer",
           "format": "int64"
         },
+        "services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BookingService"
+          }
+        },
         "status": {
           "description": "status of booking",
           "type": "string",
@@ -819,6 +862,25 @@ func init() {
         },
         "user_id": {
           "type": "string"
+        }
+      }
+    },
+    "BookingService": {
+      "type": "object",
+      "required": [
+        "service_id",
+        "quantity"
+      ],
+      "properties": {
+        "quantity": {
+          "type": "integer",
+          "format": "int64",
+          "default": 1,
+          "minimum": 1
+        },
+        "service_id": {
+          "type": "integer",
+          "format": "int64"
         }
       }
     },

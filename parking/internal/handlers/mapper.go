@@ -102,3 +102,44 @@ func stringPtr(s string) *string {
 	return &s
 }
 
+func ToDomainService(api *models.Service) *domain.Service {
+	if api == nil {
+		return nil
+	}
+
+	price := int64(0)
+	if api.Price != nil {
+		price = *api.Price
+	}
+
+	return &domain.Service{
+		ID:          api.ID,
+		ParkingID:   api.ParkingID,
+		Name:        getStringValue(api.Name),
+		Description: api.Description,
+		Price:       price,
+	}
+}
+
+func ToAPIService(d *domain.Service) *models.Service {
+	if d == nil {
+		return nil
+	}
+
+	return &models.Service{
+		ID:          d.ID,
+		ParkingID:   d.ParkingID,
+		Name:        stringPtr(d.Name),
+		Description: d.Description,
+		Price:       &d.Price,
+	}
+}
+
+func ToAPIServiceList(domains []*domain.Service) []*models.Service {
+	result := make([]*models.Service, 0, len(domains))
+	for _, d := range domains {
+		result = append(result, ToAPIService(d))
+	}
+	return result
+}
+

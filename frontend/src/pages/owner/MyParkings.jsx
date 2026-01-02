@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Plus, MapPin, DollarSign, Car as CarIcon, Edit2, Trash2, Calendar } from 'lucide-react'
+import { Plus, MapPin, DollarSign, Car as CarIcon, Edit2, Trash2, Calendar, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { parkingService } from '../../services/parkingService'
 import { PARKING_TYPES } from '../../config/api'
 import { useAuth } from '../../context/AuthContext'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import ParkingServicesModal from '../../components/ParkingServicesModal'
 
 const MyParkings = () => {
   const { user } = useAuth()
@@ -28,6 +29,8 @@ const MyParkings = () => {
   const [formLoading, setFormLoading] = useState(false)
   const [success, setSuccess] = useState('')
   const [formErrors, setFormErrors] = useState({})
+  const [showServicesModal, setShowServicesModal] = useState(false)
+  const [selectedParkingForServices, setSelectedParkingForServices] = useState(null)
 
   useEffect(() => {
     loadParkings()
@@ -259,6 +262,16 @@ const MyParkings = () => {
                   <span>{t('actions.bookings')}</span>
                 </button>
                 <button
+                  onClick={() => {
+                    setSelectedParkingForServices(parking)
+                    setShowServicesModal(true)
+                  }}
+                  className="btn-secondary flex items-center justify-center px-3"
+                  title={t('parking.manageServices')}
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+                <button
                   onClick={() => handleOpenModal(parking)}
                   className="btn-secondary flex items-center justify-center px-3"
                 >
@@ -441,6 +454,15 @@ const MyParkings = () => {
           </div>
         </div>
       )}
+
+      <ParkingServicesModal
+        parking={selectedParkingForServices}
+        isOpen={showServicesModal}
+        onClose={() => {
+          setShowServicesModal(false)
+          setSelectedParkingForServices(null)
+        }}
+      />
     </div>
   )
 }

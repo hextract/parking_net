@@ -16,6 +16,13 @@ export const API_ENDPOINTS = {
     CREATE: '/parking',
     UPDATE: (id) => `/parking/${id}`,
     DELETE: (id) => `/parking/${id}`,
+    SERVICES: {
+      LIST: (parkingId) => `/parking/${parkingId}/services`,
+      DETAIL: (parkingId, serviceId) => `/parking/${parkingId}/services/${serviceId}`,
+      CREATE: (parkingId) => `/parking/${parkingId}/services`,
+      UPDATE: (parkingId, serviceId) => `/parking/${parkingId}/services/${serviceId}`,
+      DELETE: (parkingId, serviceId) => `/parking/${parkingId}/services/${serviceId}`,
+    },
   },
   BOOKING: {
     BASE: API_BASE_URL,

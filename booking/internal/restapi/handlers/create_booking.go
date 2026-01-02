@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	payment_client "github.com/h4x4d/parking_net/booking/internal/grpc/client"
+	"github.com/h4x4d/parking_net/booking/internal/database_service"
 	"github.com/h4x4d/parking_net/booking/internal/models"
 	"github.com/h4x4d/parking_net/booking/internal/restapi/operations/driver"
 	"github.com/h4x4d/parking_net/booking/internal/utils"
@@ -48,11 +49,29 @@ func (handler *Handler) CreateBooking(params driver.CreateBookingParams, user *m
 			}
 		}
 
+		var bookingServices []database_service.BookingService
+		if params.Object.Services != nil {
+			for _, service := range params.Object.Services {
+				if service.ServiceID == nil {
+					continue
+				}
+				quantity := int64(1)
+				if service.Quantity != nil && *service.Quantity > 0 {
+					quantity = *service.Quantity
+				}
+				bookingServices = append(bookingServices, database_service.BookingService{
+					ServiceID: *service.ServiceID,
+					Quantity:  quantity,
+				})
+			}
+		}
+
 		bookingId, errCreate := handler.Database.Create(ctx,
 			params.Object.DateFrom,
 			params.Object.DateTo,
 			params.Object.ParkingPlaceID,
 			user.UserID,
+			bookingServices,
 		)
 		if errCreate != nil {
 			slog.Error(
